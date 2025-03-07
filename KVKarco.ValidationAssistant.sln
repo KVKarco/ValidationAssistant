@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{82033B58-61B7-40FB-81DB-7F53D10B6FD4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KVKarco.ValidationAssistant", "src\KVKarco.ValidationAssistant\KVKarco.ValidationAssistant.csproj", "{42D6D072-2274-4029-B079-3FF0CE7FBD87}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{947879D1-8EC8-429F-BAA4-42D9A208A88D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KVKarco.ValidationAssistant.UnitTests", "tests\KVKarco.ValidationAssistant.UnitTests\KVKarco.ValidationAssistant.UnitTests.csproj", "{BA04AF9A-CE7B-46B8-B94F-0988A3956D94}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{D227DDDC-E9A4-499C-98B9-3F48D93EA2AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KVKarco.ValidationAssistant.TestModels", "KVKarco.ValidationAssistant.TestModels\KVKarco.ValidationAssistant.TestModels.csproj", "{DBD6E6C8-1B59-4E91-B412-40F602811BCB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{42D6D072-2274-4029-B079-3FF0CE7FBD87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42D6D072-2274-4029-B079-3FF0CE7FBD87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42D6D072-2274-4029-B079-3FF0CE7FBD87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42D6D072-2274-4029-B079-3FF0CE7FBD87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA04AF9A-CE7B-46B8-B94F-0988A3956D94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA04AF9A-CE7B-46B8-B94F-0988A3956D94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA04AF9A-CE7B-46B8-B94F-0988A3956D94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA04AF9A-CE7B-46B8-B94F-0988A3956D94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBD6E6C8-1B59-4E91-B412-40F602811BCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBD6E6C8-1B59-4E91-B412-40F602811BCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBD6E6C8-1B59-4E91-B412-40F602811BCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBD6E6C8-1B59-4E91-B412-40F602811BCB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{42D6D072-2274-4029-B079-3FF0CE7FBD87} = {82033B58-61B7-40FB-81DB-7F53D10B6FD4}
+		{BA04AF9A-CE7B-46B8-B94F-0988A3956D94} = {947879D1-8EC8-429F-BAA4-42D9A208A88D}
+		{DBD6E6C8-1B59-4E91-B412-40F602811BCB} = {D227DDDC-E9A4-499C-98B9-3F48D93EA2AA}
+	EndGlobalSection
+EndGlobal
