@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+  	<AnalysisLevel>8-ALL</AnalysisLevel>
+  	<EnableNETAnalyzers>true</EnableNETAnalyzers>
+  	<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
 </Project>
