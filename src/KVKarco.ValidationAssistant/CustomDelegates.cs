@@ -68,17 +68,6 @@ public delegate string FailureMessageFactory<T, TExternalResources, in TProperty
     TProperty propertyValue);
 
 /// <summary>
-/// Represents a factory delegate for generating dynamic validation failure messages.
-/// Provides comprehensive context including object instance, external resources, and culture.
-/// </summary>
-/// <typeparam name="T">The type of the object instance being validated.</typeparam>
-/// <typeparam name="TExternalResources">The type of the object containing external resources.</typeparam>
-/// <param name="context">The <see cref="IMessageCtx{T, TExternalResources}"/> providing contextual information for message generation.</param>
-/// <returns>The generated validation error message string.</returns>
-public delegate string FailureMessageFactory<T, TExternalResources>(
-    IMessageCtx<T, TExternalResources> context);
-
-/// <summary>
 /// Represents a synchronous condition predicate used to determine whether a set of validation rules should execute.
 /// Provides access to validation snapshots and external resources.
 /// </summary>

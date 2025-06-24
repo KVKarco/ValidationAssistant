@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.ValidationRules;
+﻿using KVKarco.ValidationAssistant.Internal;
+
+namespace KVKarco.ValidationAssistant.ValidationRules;
 
 /// <summary>
 /// Represents the contract for an asynchronous custom validation rule.
@@ -32,5 +34,5 @@ public interface IAsyncValidationRule<T, TExternalResources, in TProperty>
     /// <param name="value">The value of the property to validate.</param>
     /// <param name="ct">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>A <see cref="Task{TResult}"/> that represents the asynchronous operation, containing <c>true</c> if the property value is valid; otherwise, <c>false</c>.</returns>
-    Task<bool> IsValidAsync(ValidationCtx<T, TExternalResources> context, TProperty value, CancellationToken ct);
+    Task<bool> IsValidAsync(ValidatorRunCtx<T, TExternalResources> context, TProperty value, CancellationToken ct);
 }

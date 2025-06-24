@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.ValidationRules;
+﻿using KVKarco.ValidationAssistant.Internal;
+
+namespace KVKarco.ValidationAssistant.ValidationRules;
 
 /// <summary>
 /// Represents the contract for a synchronous custom validation rule.
@@ -31,5 +33,5 @@ public interface IValidationRule<T, TExternalResources, in TProperty>
     /// <param name="context">The validation context, providing access to the object being validated and external dependencies.</param>
     /// <param name="value">The value of the property to validate.</param>
     /// <returns><c>true</c> if the property value is valid according to this rule; otherwise, <c>false</c>.</returns>
-    bool IsValid(ValidationCtx<T, TExternalResources> context, TProperty value);
+    bool IsValid(ValidatorRunCtx<T, TExternalResources> context, TProperty value);
 }

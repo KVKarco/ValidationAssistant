@@ -5,7 +5,7 @@
 /// This class encapsulates details about the failing rule, including its name,
 /// where it was declared, and how influence the validation run.
 /// </summary>
-internal sealed class ValidationFailureInfo : IEquatable<ValidationFailureInfo?>
+internal abstract class ValidationFailureInfo
 {
     public ValidationFailureInfo(ReadOnlySpan<char> ruleName, int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
     {
@@ -20,42 +20,39 @@ internal sealed class ValidationFailureInfo : IEquatable<ValidationFailureInfo?>
 
         Strategy = strategy;
         DeclaredOnLine = declaredOnLine;
+        Severity = severity;
     }
 
     public int DeclaredOnLine { get; }
 
     public ComponentFailureStrategy Strategy { get; }
 
+    public FailureSeverity Severity { get; }
+
     public string Title { get; set; }
 
-    public static ValidationFailureInfo New(ReadOnlySpan<char> ruleName, int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
-        => new(ruleName, declaredOnLine, severity, strategy);
+    public static ValidationFailureInfo<T, TExternalResources, TProperty> New<T, TExternalResources, TProperty>(
+        FailureMessageFactory<T, TExternalResources, TProperty> failureMessageFactory,
+        ReadOnlySpan<char> ruleName,
+        int declaredOnLine,
+        FailureSeverity severity,
+        ComponentFailureStrategy strategy)
+        => new(failureMessageFactory, ruleName, declaredOnLine, severity, strategy);
+}
 
-    public override bool Equals(object? obj)
+internal sealed class ValidationFailureInfo<T, TExternalResources, TProperty> :
+    ValidationFailureInfo
+{
+    public ValidationFailureInfo(
+        FailureMessageFactory<T, TExternalResources, TProperty> failureMessageFactory,
+        ReadOnlySpan<char> ruleName,
+        int declaredOnLine,
+        FailureSeverity severity,
+        ComponentFailureStrategy strategy)
+        : base(ruleName, declaredOnLine, severity, strategy)
     {
-        return Equals(obj as ValidationFailureInfo);
+        FailureMessageFactory = failureMessageFactory;
     }
 
-    public bool Equals(ValidationFailureInfo? other)
-    {
-        return other is not null &&
-               DeclaredOnLine == other.DeclaredOnLine &&
-               Strategy == other.Strategy &&
-               Title == other.Title;
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(DeclaredOnLine, Strategy, Title);
-    }
-
-    public static bool operator ==(ValidationFailureInfo? left, ValidationFailureInfo? right)
-    {
-        return EqualityComparer<ValidationFailureInfo>.Default.Equals(left, right);
-    }
-
-    public static bool operator !=(ValidationFailureInfo? left, ValidationFailureInfo? right)
-    {
-        return !(left == right);
-    }
+    public FailureMessageFactory<T, TExternalResources, TProperty> FailureMessageFactory { get; }
 }

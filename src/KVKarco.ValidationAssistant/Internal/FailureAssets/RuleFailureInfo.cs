@@ -5,9 +5,9 @@
 /// This class encapsulates details about the failing rule, including its name,
 /// where it was declared, and how influence the validation run.
 /// </summary>
-internal sealed class RuleFailureInfo
+internal abstract class RuleFailureInfo
 {
-    public RuleFailureInfo(ReadOnlySpan<char> validatorName, ReadOnlySpan<char> ruleName, int declaredOnLine, RuleFailureStrategy strategy)
+    public RuleFailureInfo(ReadOnlySpan<char> validatorName, ReadOnlySpan<char> ruleName, int declaredOnLine, RuleFailureStrategy strategy, int rulesToSkip)
     {
         Title = $"""
 
@@ -20,7 +20,10 @@ internal sealed class RuleFailureInfo
 
         Strategy = strategy;
         DeclaredOnLine = declaredOnLine;
+        RulesToSkip = rulesToSkip;
     }
+
+    public int RulesToSkip { get; }
 
     public int DeclaredOnLine { get; }
 
@@ -28,6 +31,55 @@ internal sealed class RuleFailureInfo
 
     public string Title { get; set; }
 
-    public static ValidationFailureInfo New(ReadOnlySpan<char> ruleName, int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
-        => new(ruleName, declaredOnLine, severity, strategy);
+    public static LogicalRuleFailureInfo<T, TExternalResources> ForLogicalRule<T, TExternalResources>(
+        int rulesToSkip,
+        Func<ValidatorRunCtx<T, TExternalResources>, int, string> explanationFactory,
+        ReadOnlySpan<char> validatorName,
+        ReadOnlySpan<char> ruleName,
+        int declaredOnLine,
+        RuleFailureStrategy strategy)
+        => new(rulesToSkip, explanationFactory, validatorName, ruleName, declaredOnLine, strategy);
+
+    public static PropertyRuleFailureInfo<T, TExternalResources, TProperty> ForLogicalRule<T, TExternalResources, TProperty>(
+        Func<ValidatorRunCtx<T, TExternalResources>, TProperty, string> explanationFactory,
+        ReadOnlySpan<char> validatorName,
+        ReadOnlySpan<char> ruleName,
+        int declaredOnLine,
+        RuleFailureStrategy strategy)
+        => new(explanationFactory, validatorName, ruleName, declaredOnLine, strategy);
+}
+
+internal sealed class LogicalRuleFailureInfo<T, TExternalResources> :
+    RuleFailureInfo
+{
+    public LogicalRuleFailureInfo(
+        int rulesToSkip,
+        Func<ValidatorRunCtx<T, TExternalResources>, int, string> explanationFactory,
+        ReadOnlySpan<char> validatorName,
+        ReadOnlySpan<char> ruleName,
+        int declaredOnLine,
+        RuleFailureStrategy strategy)
+        : base(validatorName, ruleName, declaredOnLine, strategy, rulesToSkip)
+    {
+        ExplanationFactory = explanationFactory;
+    }
+
+    public Func<ValidatorRunCtx<T, TExternalResources>, int, string> ExplanationFactory { get; }
+}
+
+internal sealed class PropertyRuleFailureInfo<T, TExternalResources, TProperty> :
+    RuleFailureInfo
+{
+    public PropertyRuleFailureInfo(
+        Func<ValidatorRunCtx<T, TExternalResources>, TProperty, string> explanationFactory,
+        ReadOnlySpan<char> validatorName,
+        ReadOnlySpan<char> ruleName,
+        int declaredOnLine,
+        RuleFailureStrategy strategy)
+        : base(validatorName, ruleName, declaredOnLine, strategy, 0)
+    {
+        ExplanationFactory = explanationFactory;
+    }
+
+    public Func<ValidatorRunCtx<T, TExternalResources>, TProperty, string> ExplanationFactory { get; }
 }

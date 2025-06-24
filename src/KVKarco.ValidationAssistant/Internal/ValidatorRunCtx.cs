@@ -1,0 +1,271 @@
+﻿using KVKarco.ValidationAssistant.Exceptions;
+using KVKarco.ValidationAssistant.Internal.FailureAssets;
+using System.Globalization;
+
+namespace KVKarco.ValidationAssistant.Internal;
+
+/// <summary>
+/// Represents the abstract base class for a validator's execution context.
+/// This context holds state and provides utilities during a validation run,
+/// allowing validators to track progress, access culture information,
+/// and manage validation results and failures.
+/// </summary>
+public abstract class ValidatorRunCtx
+{
+    /// <summary>
+    /// Stores the name or identifier of the validator from which this context originated.
+    /// </summary>
+    private protected readonly string _fromValidator;
+
+    /// <summary>
+    /// Stores information about the most recent rule failure encountered during the validation run.
+    /// This is used to track the specific <see cref="RuleFailure"/> instance.
+    /// </summary>
+    private protected RuleFailure? _currentRuleFailure;
+
+    /// <summary>
+    /// Stores metadata about the configuration of the most recent rule failure.
+    /// This includes strategy for stopping or exiting rules.
+    /// </summary>
+    private protected RuleFailureInfo? _currentRuleFailureInfo;
+
+    /// <summary>
+    /// Stores metadata about the configuration of the most recent validation failure
+    /// that applies to a specific property.
+    /// </summary>
+    private protected ValidationFailureInfo? _currentValidationFailureInfo;
+
+    /// <summary>
+    /// Tracks the total count of validation failures accumulated during the entire validation run.
+    /// </summary>
+    private protected int _totalValidationFailures;
+
+    /// <summary>
+    /// Tracks the count of failures for the currently executing property rule.
+    /// </summary>
+    private protected int _currentPropertyRuleFailures;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValidatorRunCtx"/> class.
+    /// This constructor sets up the foundational context for a validation run.
+    /// </summary>
+    /// <param name="fromValidator">The name or identifier of the validator initiating this context.</param>
+    /// <param name="culture">The <see cref="CultureInfo"/> to be used for validation, especially for message formatting.</param>
+    /// <param name="parentContext">An optional reference to a parent <see cref="ValidatorRunCtx"/> for nested validations.</param>
+    /// <param name="result">The <see cref="ValidatorRunResult"/> instance where validation outcomes will be recorded.</param>
+    private protected ValidatorRunCtx(string fromValidator, CultureInfo culture, ValidatorRunCtx? parentContext, ValidatorRunResult result)
+    {
+        _fromValidator = fromValidator;
+        Culture = culture;
+        ParentContext = parentContext;
+        Result = result;
+
+        _totalValidationFailures = 0;
+        _currentPropertyRuleFailures = 0;
+    }
+
+    /// <summary>
+    /// Gets the <see cref="CultureInfo"/> associated with the current validation run.
+    /// </summary>
+    public CultureInfo Culture { get; }
+
+    /// <summary>
+    /// Gets the name of the property currently being validated as a read-only span of characters.
+    /// This property must be implemented by derived classes.
+    /// </summary>
+    public abstract ReadOnlySpan<char> PropertyName { get; }
+
+    /// <summary>
+    /// Gets an optional reference to the parent validation context if this is a nested validation run.
+    /// </summary>
+    internal ValidatorRunCtx? ParentContext { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ValidatorRunResult"/> where all validation successes and failures are aggregated.
+    /// </summary>
+    internal ValidatorRunResult Result { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the overall validation run is currently considered valid (i.e., no total failures recorded).
+    /// </summary>
+    internal bool IsRunValid => _totalValidationFailures == 0;
+
+    /// <summary>
+    /// Gets the correct or full path of the property currently being validated within the object graph.
+    /// This property must be implemented by derived classes.
+    /// </summary>
+    internal abstract string CorrectPropertyPath { get; }
+}
+
+/// <summary>
+/// Represents the generic base class for a validator's execution context,
+/// providing access to the instance being validated and any external resources.
+/// </summary>
+/// <typeparam name="T">The type of the main instance being validated.</typeparam>
+/// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
+public abstract class ValidatorRunCtx<T, TExternalResources> :
+    ValidatorRunCtx,
+    //IConditionCtx<T, TExternalResources>, // Commented out as per original code
+    IMessageCtx<T, TExternalResources>
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValidatorRunCtx{T, TExternalResources}"/> class.
+    /// This constructor sets up the context with the specific validation instance and resources.
+    /// </summary>
+    /// <param name="value">The instance of <typeparamref name="T"/> currently being validated.</param>
+    /// <param name="resources">The external resources of type <typeparamref name="TExternalResources"/> available during validation.</param>
+    /// <param name="fromValidator">The name or identifier of the validator initiating this context.</param>
+    /// <param name="culture">The <see cref="CultureInfo"/> to be used for validation.</param>
+    /// <param name="parentContext">An optional reference to a parent <see cref="ValidatorRunCtx"/> for nested validations.</param>
+    /// <param name="result">The <see cref="ValidatorRunResult"/> instance where validation outcomes will be recorded.</param>
+    private protected ValidatorRunCtx(
+        T value,
+        TExternalResources resources,
+        string fromValidator,
+        CultureInfo culture,
+        ValidatorRunCtx? parentContext,
+        ValidatorRunResult result)
+        : base(fromValidator, culture, parentContext, result)
+    {
+        ValidationInstance = value;
+        Resources = resources;
+    }
+
+    /// <summary>
+    /// Gets the main instance of type <typeparamref name="T"/> currently undergoing validation.
+    /// </summary>
+    public T ValidationInstance { get; }
+
+    /// <summary>
+    /// Gets the external resources of type <typeparamref name="TExternalResources"/> available for the current validation run.
+    /// </summary>
+    public TExternalResources Resources { get; }
+
+    /// <summary>
+    /// Determines whether the current property rule execution should be exited based on the
+    /// <see cref="ComponentFailureStrategy"/> of the current validation failure.
+    /// </summary>
+    /// <returns><see langword="true"/> if the property rule should exit; otherwise, <see langword="false"/>.</returns>
+    internal bool ToExitPropertyRule()
+    {
+        return _currentValidationFailureInfo is not null
+               && (_currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop
+                   || _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Exit);
+    }
+
+    /// <summary>
+    /// Determines whether the entire validation process should stop based on the
+    /// <see cref="RuleFailureStrategy"/> of the current rule failure or the
+    /// <see cref="ComponentFailureStrategy"/> of the current validation failure.
+    /// </summary>
+    /// <returns><see langword="true"/> if the validation should stop entirely; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ValidationAssistantInternalException">
+    /// Thrown if <see cref="_currentRuleFailureInfo"/> or <see cref="_currentValidationFailureInfo"/> are unexpectedly null.
+    /// This indicates an internal logic error within the validation assistant.
+    /// </exception>
+    internal bool ToStopValidation()
+    {
+        if (_currentRuleFailure is null)
+        {
+            return false;
+        }
+
+        if (_currentRuleFailureInfo is null || _currentValidationFailureInfo is null)
+        {
+            throw new ValidationAssistantInternalException("Debug how RuleFailureInfo or ValidationFailureInfo is null in ToStopValidation.");
+        }
+
+        return _currentRuleFailureInfo.Strategy == RuleFailureStrategy.Stop || _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop;
+    }
+
+    /// <summary>
+    /// Calculates the index for the next rule to be executed, potentially skipping rules
+    /// if the current rule failure dictates a "logical rule" skip.
+    /// </summary>
+    /// <param name="currentIndex">The current index of the rule being processed.</param>
+    /// <returns>The index of the next rule to process.</returns>
+    /// <exception cref="ValidationAssistantInternalException">
+    /// Thrown if <see cref="_currentRuleFailureInfo"/> is unexpectedly null when calculating the next index.
+    /// This indicates an internal logic error.
+    /// </exception>
+    internal int CalculateNextIndex(int currentIndex)
+    {
+        if (_currentRuleFailure is null)
+        {
+            return currentIndex + 1; // No failure, proceed to the next rule
+        }
+
+        if (_currentRuleFailureInfo is null)
+        {
+            throw new ValidationAssistantInternalException("Debug how RuleFailureInfo is null in CalculateNextIndex.");
+        }
+
+        // If rules should be skipped due to a logical rule failure, calculate the new index
+        // Otherwise, just move to the next rule
+        return _currentRuleFailureInfo.RulesToSkip == 0 ? currentIndex + 1 : currentIndex + _currentRuleFailureInfo.RulesToSkip + 1;
+    }
+
+    /// <summary>
+    /// Resets the internal state for processing a new logical rule.
+    /// This typically clears any active rule or validation failure information.
+    /// </summary>
+    internal virtual void ForLogicalRule()
+    {
+        _currentRuleFailure = null;
+        _currentRuleFailureInfo = null;
+        _currentValidationFailureInfo = null;
+        _currentPropertyRuleFailures = 0;
+    }
+
+    /// <summary>
+    /// Adds a failure related to a logical rule to the validation result.
+    /// This populates <see cref="_currentRuleFailure"/> and adds it to the overall <see cref="Result"/>.
+    /// </summary>
+    /// <param name="failureInfo">Information about the logical rule failure, including its explanation factory.</param>
+    internal void AddLogicalRuleFailure(LogicalRuleFailureInfo<T, TExternalResources> failureInfo)
+    {
+        // Create a new LogicalRuleFailure based on the provided info and its explanation
+        _currentRuleFailure = new LogicalRuleFailure(failureInfo, failureInfo.ExplanationFactory(this, failureInfo.RulesToSkip));
+        Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
+    }
+
+    /// <summary>
+    /// Adds a validation failure associated with a specific property to the validation result.
+    /// This updates failure counters and manages the current rule failure context.
+    /// </summary>
+    /// <typeparam name="TProperty">The type of the property that failed validation.</typeparam>
+    /// <param name="property">The <see cref="Undefined{TProperty}"/> instance representing the property and its value.</param>
+    /// <param name="failureInfo">Information about the validation failure, including its message factory and strategy.</param>
+    /// <exception cref="ValidationAssistantInternalException">
+    /// Thrown if <see cref="_currentRuleFailureInfo"/> is not of the expected type or is null when adding a property validation failure.
+    /// This indicates an internal logic error.
+    /// </exception>
+    internal void AddValidationFailure<TProperty>(Undefined<TProperty> property, ValidationFailureInfo<T, TExternalResources, TProperty> failureInfo)
+    {
+        _currentPropertyRuleFailures++; // Increment failures for the current property rule
+        _totalValidationFailures++;     // Increment total failures for the entire run
+        _currentValidationFailureInfo = failureInfo; // Update the current validation failure info
+
+        // If there's no current RuleFailure (meaning this is the first failure for a property rule),
+        // create a new PropertyRuleFailure and add it to the result.
+        if (_currentRuleFailure is null)
+        {
+            if (_currentRuleFailureInfo is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
+            {
+                // Create a new PropertyRuleFailure using the property, its path, and an explanation
+                _currentRuleFailure = new PropertyRuleFailure<TProperty>(
+                    property, CorrectPropertyPath, info, info.ExplanationFactory(this, property.Value));
+                Result.AddRuleFailure(_currentRuleFailure); // Add this new rule failure to the overall result
+            }
+            else
+            {
+                // Internal error: RuleFailureInfo should be a PropertyRuleFailureInfo at this point
+                throw new ValidationAssistantInternalException("Debug how PropertyRuleFailureInfo is wrong type or null in AddValidationFailure.");
+            }
+        }
+
+        // Add the specific validation failure (for the property) to the current rule failure
+        _currentRuleFailure.AddValidationFailure(ValidationFailure.New(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
+    }
+}
+
