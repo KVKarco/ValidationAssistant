@@ -121,5 +121,30 @@ public class DefaultMessages
         throw new ValidationRunException($"{context.Culture} is not supported.");
     }
 
+    /// <summary>
+    /// Provides a default explanation message for when a validation rule set (PropertyRule) stops
+    /// execution because a specified validation snapshot is found to be invalid.
+    /// </summary>
+    /// <typeparam name="T">The type of the main object instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources available to the rule.</typeparam>
+    /// <typeparam name="TProperty">The type of the property being validated, if applicable (can be ignored if not directly used by the message).</typeparam>
+    /// <param name="context">The message context, providing access to the validated object, external resources, and culture information.</param>
+    /// <param name="value">The actual value of the property associated with the component (can be ignored if not applicable to the message).</param>
+    /// <param name="snapShotIdentifier">The unique identifier of the snapshot that was found to be invalid.</param>
+    /// <returns>A localized string explaining that the snapshot is invalid and has caused the validation rule set to stop.</returns>
+    /// <exception cref="ValidationRunException">Thrown if the specified <paramref name="context"/> culture is not supported for message generation.</exception>
+    public virtual string InvalidSnapShotComponentExplanation<T, TExternalResources, TProperty>(
+       [NotNull] IMessageCtx<T, TExternalResources> context,
+       TProperty value,
+       ReadOnlySpan<char> snapShotIdentifier)
+    {
+        if (context.Culture == CultureInfo.GetCultureInfo("en-US"))
+        {
+            return $"SnapShot {snapShotIdentifier} is not valid ValidationRuleSet(PropertyRule) stop executing.";
+        }
+
+        throw new ValidationRunException($"{context.Culture} is not supported.");
+    }
+
     #endregion
 }

@@ -1,5 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.Internal.FailureAssets;
+using System.Collections.Immutable;
 using System.Globalization;
 
 namespace KVKarco.ValidationAssistant.Internal;
@@ -109,9 +110,18 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     IMessageCtx<T, TExternalResources>
 {
     /// <summary>
+    /// Stores the state of available validation snapshots, mapped by their identifier.
+    /// Each tuple contains the snapshot identifier and a nullable boolean indicating its validity.
+    /// A null value means the snapshot result has not yet been calculated.
+    /// </summary>
+    private readonly (string identifaer, bool? isValid)[]? _availableSnapShots;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ValidatorRunCtx{T, TExternalResources}"/> class.
     /// This constructor sets up the context with the specific validation instance and resources.
     /// </summary>
+    /// <param name="availableSnapShots">An optional immutable array of snapshot identifiers that this validator expects to capture.
+    /// Each identified snapshot's validity will initially be set to null.</param>
     /// <param name="value">The instance of <typeparamref name="T"/> currently being validated.</param>
     /// <param name="resources">The external resources of type <typeparamref name="TExternalResources"/> available during validation.</param>
     /// <param name="fromValidator">The name or identifier of the validator initiating this context.</param>
@@ -119,6 +129,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// <param name="parentContext">An optional reference to a parent <see cref="ValidatorRunCtx"/> for nested validations.</param>
     /// <param name="result">The <see cref="ValidatorRunResult"/> instance where validation outcomes will be recorded.</param>
     private protected ValidatorRunCtx(
+        ImmutableArray<string>? availableSnapShots,
         T value,
         TExternalResources resources,
         string fromValidator,
@@ -127,6 +138,16 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         ValidatorRunResult result)
         : base(fromValidator, culture, parentContext, result)
     {
+        if (availableSnapShots is not null)
+        {
+            _availableSnapShots = new (string, bool?)[availableSnapShots.Value.Length];
+
+            for (int i = 0; i < availableSnapShots.Value.Length; i++)
+            {
+                _availableSnapShots[i] = (availableSnapShots.Value[i], null);
+            }
+        }
+
         ValidationInstance = value;
         Resources = resources;
     }
@@ -268,9 +289,77 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         _currentRuleFailure.AddValidationFailure(ValidationFailure.New(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
     }
 
-    public bool IsSnapShotValid(string snapShotIdentifier)
+    /// <summary>
+    /// Calculates the index for the next rule to be executed, potentially skipping rules
+    /// if the current rule failure dictates a "logical rule" skip.
+    /// </summary>
+    /// <param name="currentIndex">The current index of the rule being processed.</param>
+    /// <returns>The index of the next rule to process.</returns>
+    /// <exception cref="ValidationAssistantInternalException">
+    /// Thrown if <see cref="_currentRuleFailureInfo"/> is unexpectedly null when calculating the next index.
+    /// This indicates an internal logic error.
+    /// </exception>
+    internal void CalculateAndAddSnapShotResult(string snapShotIdentifier)
     {
-        throw new NotImplementedException();
+        if (_availableSnapShots is null)
+        {
+            throw new ValidationRunException($"Validator: {_fromValidator} does not contain any snap shots.");
+        }
+
+        int index = Array.FindIndex(_availableSnapShots, s => s.identifaer == snapShotIdentifier);
+
+        if (index < 0)
+        {
+            throw new ValidationRunException($"Snap shot: {snapShotIdentifier} does not exist in validator: {_fromValidator}.");
+        }
+
+        var (identifier, isValid) = _availableSnapShots[index];
+
+        if (isValid.HasValue)
+        {
+            throw new ValidationRunException($"Snap shot: {snapShotIdentifier} value is already set.");
+        }
+
+        _availableSnapShots[index] = (snapShotIdentifier, _currentPropertyRuleFailures == 0);
+    }
+
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "<Pending>")]
+    bool IConditionCtx<T, TExternalResources>.IsSnapShotValid(string snapShotIdentifier)
+        => IsSnapShotValidInternal(snapShotIdentifier);
+
+    /// <summary>
+    /// Retrieves the validity status of a previously calculated validation snapshot.
+    /// This allows subsequent rules or components to make decisions based on past validation outcomes.
+    /// </summary>
+    /// <param name="snapShotIdentifier">The unique identifier of the snapshot whose validity is to be retrieved.</param>
+    /// <returns><see langword="true"/> if the snapshot was valid (no property rule failures at its capture point); otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ValidationRunException">
+    /// Thrown if the validator does not support snapshots, if the <paramref name="snapShotIdentifier"/> does not exist,
+    /// or if the snapshot's value has not yet been set.
+    /// </exception>
+    internal bool IsSnapShotValidInternal(string snapShotIdentifier)
+    {
+        if (_availableSnapShots is null)
+        {
+            throw new ValidationRunException($"Validator: {_fromValidator} does not contain any snap shots.");
+        }
+
+        int index = Array.FindIndex(_availableSnapShots, s => s.identifaer == snapShotIdentifier);
+
+        if (index < 0)
+        {
+            throw new ValidationRunException($"Snap shot: {snapShotIdentifier} does not exist in validator: {_fromValidator}.");
+        }
+
+        bool? isValid = _availableSnapShots[index].isValid;
+
+        if (isValid.HasValue)
+        {
+            return isValid.Value;
+        }
+
+        throw new ValidationRunException($"Snap shot: {snapShotIdentifier} value is not set.");
     }
 }
 

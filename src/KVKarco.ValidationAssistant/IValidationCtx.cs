@@ -36,8 +36,12 @@ public interface IConditionCtx<T, TExternalResources> :
     /// Checks the validity state of a previously captured validation snapshot.
     /// This is typically used to enable/disable rule sets based on prior validation results.
     /// </summary>
-    /// <param name="snapShotIdentifier">A string identifier for the validation snapshot to check.</param>
-    /// <returns><c>true</c> if the identified snapshot is valid; otherwise, <c>false</c>.</returns>
+    /// <param name="snapShotIdentifier">The unique identifier of the snapshot whose validity is to be retrieved.</param>
+    /// <returns><see langword="true"/> if the snapshot was valid (no property rule failures at its capture point); otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ValidationRunException">
+    /// Thrown if the validator does not support snapshots, if the <paramref name="snapShotIdentifier"/> does not exist,
+    /// or if the snapshot's value has not yet been set.
+    /// </exception>
     bool IsSnapShotValid(string snapShotIdentifier);
 }
 
