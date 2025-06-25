@@ -105,7 +105,7 @@ public abstract class ValidatorRunCtx
 /// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
 public abstract class ValidatorRunCtx<T, TExternalResources> :
     ValidatorRunCtx,
-    //IConditionCtx<T, TExternalResources>, // Commented out as per original code
+    IConditionCtx<T, TExternalResources>,
     IMessageCtx<T, TExternalResources>
 {
     /// <summary>
@@ -266,6 +266,11 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
 
         // Add the specific validation failure (for the property) to the current rule failure
         _currentRuleFailure.AddValidationFailure(ValidationFailure.New(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
+    }
+
+    public bool IsSnapShotValid(string snapShotIdentifier)
+    {
+        throw new NotImplementedException();
     }
 }
 
