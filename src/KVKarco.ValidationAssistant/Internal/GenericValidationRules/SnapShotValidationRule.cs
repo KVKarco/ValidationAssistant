@@ -74,6 +74,6 @@ internal sealed class SnapShotValidationRule<T, TExternalResources, TProperty> :
 
         // When not capturing, the rule's validity depends on the snapshot's validity
         // Assuming IsSnapShotValidInternal is an internal helper for IsSnapShotValid or a similar check.
-        return context.IsSnapShotValid(_snapShotIdentifier);
+        return context.IsSnapShotValidInternal(_snapShotIdentifier);
     }
 }

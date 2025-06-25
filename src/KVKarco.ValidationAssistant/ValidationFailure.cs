@@ -26,9 +26,9 @@ public readonly record struct ValidationFailure
     /// Initializes a new instance of the <see cref="ValidationFailure"/> record struct with specified details.
     /// This private constructor is used by the static <see cref="New"/> factory method.
     /// </summary>
-    /// <param name="info">The <see cref="ValidationFailureInfo"/> containing metadata and configuration for this specific failure.</param>
+    /// <param name="info">The <see cref="ComponentFailureInfo"/> containing metadata and configuration for this specific failure.</param>
     /// <param name="message">A descriptive message explaining the reason for this validation failure.</param>
-    private ValidationFailure(ValidationFailureInfo info, string message)
+    private ValidationFailure(ComponentFailureInfo info, string message)
     {
         Info = info;
         Message = message;
@@ -45,10 +45,10 @@ public readonly record struct ValidationFailure
     public readonly string Message { get; }
 
     /// <summary>
-    /// Gets the internal <see cref="ValidationFailureInfo"/> object that provides detailed metadata
+    /// Gets the internal <see cref="ComponentFailureInfo"/> object that provides detailed metadata
     /// and configuration for this specific validation failure.
     /// </summary>
-    internal readonly ValidationFailureInfo Info { get; }
+    internal readonly ComponentFailureInfo Info { get; }
 
     /// <summary>
     /// Appends the title from <see cref="Info"/> and the <see cref="Message"/> of this validation failure
@@ -66,9 +66,9 @@ public readonly record struct ValidationFailure
     /// Creates a new instance of the <see cref="ValidationFailure"/> record struct.
     /// This is the recommended factory method for creating <see cref="ValidationFailure"/> instances.
     /// </summary>
-    /// <param name="info">The <see cref="ValidationFailureInfo"/> containing metadata and configuration for the failure.</param>
+    /// <param name="info">The <see cref="ComponentFailureInfo"/> containing metadata and configuration for the failure.</param>
     /// <param name="message">A descriptive message explaining the reason for the validation failure.</param>
     /// <returns>A new <see cref="ValidationFailure"/> instance.</returns>
-    internal static ValidationFailure New(ValidationFailureInfo info, string message)
+    internal static ValidationFailure New(ComponentFailureInfo info, string message)
         => new(info, message);
 }

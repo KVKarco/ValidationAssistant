@@ -34,7 +34,7 @@ public abstract class ValidatorRunCtx
     /// Stores metadata about the configuration of the most recent validation failure
     /// that applies to a specific property.
     /// </summary>
-    private protected ValidationFailureInfo? _currentValidationFailureInfo;
+    private protected ComponentFailureInfo? _currentValidationFailureInfo;
 
     /// <summary>
     /// Tracks the total count of validation failures accumulated during the entire validation run.
@@ -261,7 +261,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// Thrown if <see cref="_currentRuleFailureInfo"/> is not of the expected type or is null when adding a property validation failure.
     /// This indicates an internal logic error.
     /// </exception>
-    internal void AddValidationFailure<TProperty>(Undefined<TProperty> property, ValidationFailureInfo<T, TExternalResources, TProperty> failureInfo)
+    internal void AddPropertyRuleComponentFailure<TProperty>(Undefined<TProperty> property, ComponentFailureInfo<T, TExternalResources, TProperty> failureInfo)
     {
         _currentPropertyRuleFailures++; // Increment failures for the current property rule
         _totalValidationFailures++;     // Increment total failures for the entire run

@@ -172,13 +172,16 @@ internal sealed class PropertyRuleFailure<TProperty> : RuleFailure
     /// Gets a value indicating whether this property rule failure contains any specific <see cref="ValidationFailure"/> instances.
     /// Returns <see langword="true"/> if there are collected validation failures; otherwise, <see langword="false"/>.
     /// </summary>
-    public sealed override bool HasValidationFailures => _validationFailures is not null && _validationFailures.Count > 0;
+    public sealed override bool HasValidationFailures => _validationFailures is not null
+        && _validationFailures.Exists(x => x.Severity == FailureSeverity.Error || x.Severity == FailureSeverity.Warning);
 
     /// <summary>
     /// Gets a read-only collection of <see cref="ValidationFailure"/> instances that occurred for this property.
     /// Returns an empty collection if no validation failures have been added.
     /// </summary>
-    public sealed override IReadOnlyCollection<ValidationFailure> ValidationFailures => _validationFailures is not null ? _validationFailures.AsReadOnly() : [];
+    public sealed override IReadOnlyCollection<ValidationFailure> ValidationFailures => _validationFailures is not null
+        ? _validationFailures.Where(x => x.Severity == FailureSeverity.Error || x.Severity == FailureSeverity.Warning).ToArray()
+        : [];
 
     /// <summary>
     /// Gets a read-only collection of error messages from the <see cref="ValidationFailure"/> instances
