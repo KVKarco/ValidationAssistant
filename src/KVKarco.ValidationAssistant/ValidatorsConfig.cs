@@ -147,4 +147,32 @@ public class DefaultMessages
     }
 
     #endregion
+
+    #region ValidatorRules failure explanations
+
+    /// <summary>
+    /// Provides a default explanation message for when a property's value cannot be extracted or is considered missing during validation.
+    /// This method can be overridden in derived classes to provide culture-specific or more detailed explanations.
+    /// </summary>
+    /// <typeparam name="T">The type of the instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
+    /// <param name="context">The message context, providing access to validation details like property name and culture information.</param>
+    /// <returns>A string explaining that the property value could not be extracted or is missing.</returns>
+    /// <exception cref="ValidationRunException">Thrown if the provided culture in the context is not supported (currently only "en-US" is supported).</exception>
+    public virtual string PropertyValueMissingExplanation<T, TExternalResources>(
+        [NotNull] IMessageCtx<T, TExternalResources> context)
+    {
+        // Checks if the current culture in the context is "en-US".
+        if (context.Culture == CultureInfo.GetCultureInfo("en-US"))
+        {
+            // Returns a standard English explanation message including the property name.
+            return $"Property : {context.PropertyName} value cant be extracted is missing.";
+        }
+
+        // Throws an exception for unsupported cultures, indicating that localization for that culture is not implemented.
+        throw new ValidationRunException($"{context.Culture} is not supported.");
+    }
+
+
+    #endregion
 }
