@@ -1,5 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.FailureAssets;
+using KVKarco.ValidationAssistant.Internal;
 
 namespace KVKarco.ValidationAssistant;
 
@@ -78,7 +78,7 @@ public sealed class ValidatorRunResult
             {
                 // Note: The original code uses null! for the first parameter, implying a constructor or static method
                 // that allows a null RuleFailureInfo. Ensure this aligns with your ValidationFailure.New implementation.
-                {"", [ValidationFailure.New(null!, PreValidationFailure!)]}
+                {"", [ValidationFailure.ForPropertyComponent(null!, PreValidationFailure!)]}
             };
         }
 

@@ -1,8 +1,7 @@
-﻿using KVKarco.ValidationAssistant.Internal.FailureAssets;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
-namespace KVKarco.ValidationAssistant.Internal;
+namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 /// <summary>
 /// Represents an abstract base class for a validation rule that operates on a specific property of the main instance.

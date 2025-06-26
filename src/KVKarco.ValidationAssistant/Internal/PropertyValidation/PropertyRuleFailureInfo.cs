@@ -1,4 +1,4 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.FailureAssets;
+﻿namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 internal sealed class PropertyRuleFailureInfo<T, TExternalResources, TProperty> :
     RuleFailureInfo

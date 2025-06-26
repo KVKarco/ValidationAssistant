@@ -1,5 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.FailureAssets;
+using KVKarco.ValidationAssistant.Internal;
+using KVKarco.ValidationAssistant.Internal.PreValidation;
 using System.Text;
 
 namespace KVKarco.ValidationAssistant;
@@ -14,7 +15,7 @@ public readonly record struct ValidationFailure
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationFailure"/> record struct.
     /// This constructor is explicitly designed to prevent direct instantiation outside of the validation framework,
-    /// ensuring that <see cref="ValidationFailure"/> instances are only created by validator logic via the <see cref="New"/> method.
+    /// ensuring that <see cref="ValidationFailure"/> instances are only created by validator logic via the <see cref="ForPropertyComponent"/> method.
     /// </summary>
     /// <exception cref="ValidationAssistantException">Thrown to indicate that this constructor should not be called directly by consumers.</exception>
     public ValidationFailure()
@@ -24,7 +25,7 @@ public readonly record struct ValidationFailure
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationFailure"/> record struct with specified details.
-    /// This private constructor is used by the static <see cref="New"/> factory method.
+    /// This private constructor is used by the static <see cref="ForPropertyComponent"/> factory method.
     /// </summary>
     /// <param name="info">The <see cref="ComponentFailureInfo"/> containing metadata and configuration for this specific failure.</param>
     /// <param name="message">A descriptive message explaining the reason for this validation failure.</param>
@@ -69,6 +70,9 @@ public readonly record struct ValidationFailure
     /// <param name="info">The <see cref="ComponentFailureInfo"/> containing metadata and configuration for the failure.</param>
     /// <param name="message">A descriptive message explaining the reason for the validation failure.</param>
     /// <returns>A new <see cref="ValidationFailure"/> instance.</returns>
-    internal static ValidationFailure New(ComponentFailureInfo info, string message)
+    internal static ValidationFailure ForPropertyComponent(ComponentFailureInfo info, string message)
+        => new(info, message);
+
+    internal static ValidationFailure ForPreValidationRule(PreValidationFailureInfo info, string message)
         => new(info, message);
 }

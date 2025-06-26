@@ -1,4 +1,4 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.FailureAssets;
+﻿namespace KVKarco.ValidationAssistant.Internal;
 
 /// <summary>
 /// Represents the structured title information for a ValidationRule(Component) failure.
@@ -7,17 +7,8 @@
 /// </summary>
 internal abstract class ComponentFailureInfo
 {
-    public ComponentFailureInfo(ReadOnlySpan<char> ruleName, int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
+    public ComponentFailureInfo(int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
     {
-        Title = $"""
-
-            RuleName          : {ruleName}
-            DeclaredOnLine    : {declaredOnLine}
-            Severity          : {severity}
-            WithMessage       : 
-
-            """;
-
         Strategy = strategy;
         DeclaredOnLine = declaredOnLine;
         Severity = severity;
@@ -29,7 +20,7 @@ internal abstract class ComponentFailureInfo
 
     public FailureSeverity Severity { get; }
 
-    public string Title { get; set; }
+    public abstract string Title { get; }
 
     public static ComponentFailureInfo<T, TExternalResources, TProperty> New<T, TExternalResources, TProperty>(
         FailureMessageFactory<T, TExternalResources, TProperty> failureMessageFactory,
@@ -49,10 +40,19 @@ internal sealed class ComponentFailureInfo<T, TExternalResources, TProperty> :
         int declaredOnLine,
         FailureSeverity severity,
         ComponentFailureStrategy strategy)
-        : base(ruleName, declaredOnLine, severity, strategy)
+        : base(declaredOnLine, severity, strategy)
     {
+        Title = $"""
+
+            RuleName          : {ruleName}
+            DeclaredOnLine    : {declaredOnLine}
+            Severity          : {severity}
+            WithMessage       : 
+            """;
         FailureMessageFactory = failureMessageFactory;
     }
 
     public FailureMessageFactory<T, TExternalResources, TProperty> FailureMessageFactory { get; }
+
+    public sealed override string Title { get; }
 }

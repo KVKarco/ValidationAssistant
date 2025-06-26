@@ -1,4 +1,7 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.FailureAssets;
+﻿using KVKarco.ValidationAssistant.Internal.PropertyValidation;
+using KVKarco.ValidationAssistant.Internal.ValidationFlow;
+
+namespace KVKarco.ValidationAssistant.Internal;
 
 /// <summary>
 /// Represents the structured title information for a ValidatorRule failure.
@@ -15,7 +18,6 @@ internal abstract class RuleFailureInfo
             RuleName          : {ruleName}
             DeclaredOnLine    : {declaredOnLine}
             Explanation       : 
-
             """;
 
         Strategy = strategy;

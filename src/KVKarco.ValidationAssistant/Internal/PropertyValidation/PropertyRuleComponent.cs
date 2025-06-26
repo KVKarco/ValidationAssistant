@@ -1,8 +1,7 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.FailureAssets;
 using KVKarco.ValidationAssistant.ValidationRules;
 
-namespace KVKarco.ValidationAssistant.Internal;
+namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 /// <summary>
 /// Represents a sealed concrete component that wraps either a synchronous (<see cref="IValidationRule{T, TExternalResources, TProperty}"/>)

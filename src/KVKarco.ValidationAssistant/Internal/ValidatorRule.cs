@@ -1,6 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Internal.FailureAssets;
-
-namespace KVKarco.ValidationAssistant.Internal;
+﻿namespace KVKarco.ValidationAssistant.Internal;
 
 /// <summary>
 /// Represents a common abstract base class for internal validator rules within the framework.

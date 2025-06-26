@@ -175,4 +175,68 @@ public class DefaultMessages
 
 
     #endregion
+
+    #region pre-validation 
+
+    /// <summary>
+    /// Provides a default error message for a failed main instance pre-validation rule.
+    /// This message is used when a fundamental check on the main instance itself fails.
+    /// </summary>
+    /// <typeparam name="T">The type of the instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
+    /// <param name="context">The message context, providing access to validation details like property name (if applicable) and culture information.</param>
+    /// <returns>A string representing the default error message for a main instance pre-validation failure.</returns>
+    /// <exception cref="ValidationRunException">Thrown if the provided culture in the context is not supported (currently only "en-US" is supported).</exception>
+    public virtual string MainInstancePreValidationError<T, TExternalResources>(
+        [NotNull] IMessageCtx<T, TExternalResources> context)
+    {
+        if (context.Culture == CultureInfo.GetCultureInfo("en-US"))
+        {
+            return $"{context.PropertyName} Its not valid."; // Note: PropertyName might be less relevant for whole-instance checks.
+        }
+
+        throw new ValidationRunException($"{context.Culture} is not supported.");
+    }
+
+    /// <summary>
+    /// Provides a default error message for a failed external resources pre-validation rule.
+    /// This message is used when a fundamental check on the external resources fails, indicating an internal problem.
+    /// </summary>
+    /// <typeparam name="T">The type of the instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
+    /// <param name="context">The message context, providing access to validation details and culture information.</param>
+    /// <returns>A string representing the default error message for an external resources pre-validation failure.</returns>
+    /// <exception cref="ValidationRunException">Thrown if the provided culture in the context is not supported (currently only "en-US" is supported).</exception>
+    public virtual string ExternalResourcesPreValidationError<T, TExternalResources>(
+        [NotNull] IMessageCtx<T, TExternalResources> context)
+    {
+        if (context.Culture == CultureInfo.GetCultureInfo("en-US"))
+        {
+            return $"Internal problem during the validation process.";
+        }
+
+        throw new ValidationRunException($"{context.Culture} is not supported.");
+    }
+
+    /// <summary>
+    /// Provides a default explanation message for when a pre-validation rule failure causes the entire validation run to stop.
+    /// This message clarifies why the validation process was prematurely terminated.
+    /// </summary>
+    /// <typeparam name="T">The type of the instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
+    /// <param name="context">The message context, providing access to validation details and culture information.</param>
+    /// <returns>A string explaining that a pre-validation rule failure caused the validation to stop.</returns>
+    /// <exception cref="ValidationRunException">Thrown if the provided culture in the context is not supported (currently only "en-US" is supported).</exception>
+    public virtual string PreValidationDefaultExplanation<T, TExternalResources>(
+        [NotNull] IMessageCtx<T, TExternalResources> context)
+    {
+        if (context.Culture == CultureInfo.GetCultureInfo("en-US"))
+        {
+            return $"PreValidation rule failure caused validation run to stop.";
+        }
+
+        throw new ValidationRunException($"{context.Culture} is not supported.");
+    }
+
+    #endregion
 }

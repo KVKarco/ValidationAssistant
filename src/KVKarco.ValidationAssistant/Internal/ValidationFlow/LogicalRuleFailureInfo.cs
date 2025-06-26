@@ -1,4 +1,4 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.FailureAssets;
+﻿namespace KVKarco.ValidationAssistant.Internal.ValidationFlow;
 
 internal sealed class LogicalRuleFailureInfo<T, TExternalResources> :
     RuleFailureInfo

@@ -1,5 +1,7 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.FailureAssets;
+using KVKarco.ValidationAssistant.Internal.PreValidation;
+using KVKarco.ValidationAssistant.Internal.PropertyValidation;
+using KVKarco.ValidationAssistant.Internal.ValidationFlow;
 using System.Collections.Immutable;
 using System.Globalization;
 
@@ -286,7 +288,16 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         }
 
         // Add the specific validation failure (for the property) to the current rule failure
-        _currentRuleFailure.AddValidationFailure(ValidationFailure.New(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
+        _currentRuleFailure.AddValidationFailure(ValidationFailure.ForPropertyComponent(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
+    }
+
+    internal void AddPreValidationFailure(PreValidationRuleFailureInfo<T, TExternalResources> failureInfo, ValidationFailure validationFailure)
+    {
+        _totalValidationFailures++;
+        // Create a new LogicalRuleFailure based on the provided info and its explanation
+        _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this, failureInfo.RulesToSkip));
+        _currentRuleFailure.AddValidationFailure(validationFailure);
+        Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
     }
 
     /// <summary>
