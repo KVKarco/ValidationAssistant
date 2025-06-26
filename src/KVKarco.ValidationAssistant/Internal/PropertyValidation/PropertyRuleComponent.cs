@@ -38,12 +38,11 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     /// <param name="rule">The synchronous validation rule to wrap. Must not be <see langword="null"/>.</param>
     /// <param name="info">The metadata describing how to handle failures for this component.
     /// This will be stored in the internal <see cref="_info"/> field.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="rule"/> is <see langword="null"/>.</exception>
     public PropertyRuleComponent(
         IValidationRule<T, TExternalResources, TProperty> rule,
         ComponentFailureInfo<T, TExternalResources, TProperty> info)
     {
-        _rule = rule ?? throw new ArgumentNullException(nameof(rule));
+        _rule = rule;
         _asyncRule = null; // Explicitly set to null to indicate a synchronous rule.
         _info = info;
     }
@@ -55,13 +54,12 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     /// <param name="asyncRule">The asynchronous validation rule to wrap. Must not be <see langword="null"/>.</param>
     /// <param name="info">The metadata describing how to handle failures for this component.
     /// This will be stored in the internal <see cref="_info"/> field.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="asyncRule"/> is <see langword="null"/>.</exception>
     public PropertyRuleComponent(
         IAsyncValidationRule<T, TExternalResources, TProperty> asyncRule,
         ComponentFailureInfo<T, TExternalResources, TProperty> info)
     {
         _rule = null; // Explicitly set to null to indicate an asynchronous rule.
-        _asyncRule = asyncRule ?? throw new ArgumentNullException(nameof(asyncRule));
+        _asyncRule = asyncRule;
         _info = info;
     }
 

@@ -3,6 +3,33 @@ using System.Collections.Immutable;
 
 namespace KVKarco.ValidationAssistant.Internal;
 
+internal abstract class ValidatorCore
+{
+    protected ValidatorCore(string validatorName, bool canRunSynchronously, List<string>? snapShots)
+    {
+        ValidatorName = validatorName;
+        CanRunSynchronously = canRunSynchronously;
+        SnapShots = snapShots is null ? null : [.. snapShots];
+    }
+
+    /// <summary>
+    /// Gets the descriptive name of this validator core.
+    /// </summary>
+    public string ValidatorName { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this validator core can be executed synchronously.
+    /// This is <see langword="true"/> if and only if all contained pre-validation rules and main rules are synchronous.
+    /// </summary>
+    public bool CanRunSynchronously { get; }
+
+    /// <summary>
+    /// Gets an optional immutable array of string snapshots, which can be used for debugging,
+    /// rule definition visualization, or other meta-information purposes.
+    /// </summary>
+    public ImmutableArray<string>? SnapShots { get; }
+}
+
 /// <summary>
 /// Represents the abstract base class for a compiled validator core.
 /// This class holds immutable sets of <see cref="IPreValidationRule{T, TExternalResources}"/> instances
@@ -14,7 +41,8 @@ namespace KVKarco.ValidationAssistant.Internal;
 /// <typeparam name="TExternalResources">The type of external resources that can be accessed by the validation rules.</typeparam>
 /// <typeparam name="TContex">The specific type of <see cref="ValidatorRunCtx{T, TExternalResources}"/>
 /// used for the validation run, ensuring context-specific operations and access to resources.</typeparam>
-internal abstract class ValidatorCore<T, TExternalResources, TContex>
+internal abstract class ValidatorCore<T, TExternalResources, TContex> :
+    ValidatorCore
     where TContex : ValidatorRunCtx<T, TExternalResources>
 {
     /// <summary>
@@ -43,31 +71,11 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex>
         List<string>? snapShots,
         List<IPreValidationRule<T, TExternalResources>> preValidationRules,
         List<IValidatorRule<T, TExternalResources, TContex>> rules)
+        : base(validatorName, !preValidationRules.Exists(x => !x.CanRunSynchronously) && !rules.Exists(x => !x.CanRunSynchronously), snapShots)
     {
         _preValidationRules = [.. preValidationRules];
         _rules = [.. rules]; // Convert list to immutable array for thread-safety and performance.
-        ValidatorName = validatorName;
-        // Determines if this core can run synchronously by checking if any of its pre-validation rules or main rules require asynchronous execution.
-        CanRunSynchronously = !preValidationRules.Exists(x => !x.CanRunSynchronously) && !rules.Exists(x => !x.CanRunSynchronously);
-        SnapShots = snapShots is null ? null : [.. snapShots]; // Convert list to immutable array if provided.
     }
-
-    /// <summary>
-    /// Gets the descriptive name of this validator core.
-    /// </summary>
-    public string ValidatorName { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether this validator core can be executed synchronously.
-    /// This is <see langword="true"/> if and only if all contained pre-validation rules and main rules are synchronous.
-    /// </summary>
-    public bool CanRunSynchronously { get; }
-
-    /// <summary>
-    /// Gets an optional immutable array of string snapshots, which can be used for debugging,
-    /// rule definition visualization, or other meta-information purposes.
-    /// </summary>
-    public ImmutableArray<string>? SnapShots { get; }
 
     /// <summary>
     /// Synchronously executes all compiled pre-validation rules, and if they all pass

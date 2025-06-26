@@ -1,8 +1,10 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
+using KVKarco.ValidationAssistant.Internal.ExpressValidator;
 using KVKarco.ValidationAssistant.Internal.PreValidation;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using KVKarco.ValidationAssistant.Internal.ValidationFlow;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace KVKarco.ValidationAssistant.Internal;
@@ -98,6 +100,34 @@ public abstract class ValidatorRunCtx
     /// This property must be implemented by derived classes.
     /// </summary>
     internal abstract string CorrectPropertyPath { get; }
+
+    /// <summary>
+    /// Factory method to create a new <see cref="ExpressValidatorRunCtx{T, TExternalResources}"/> for a fresh validation run
+    /// initiated by an <see cref="ExpressValidatorCore{T, TExternalResources}"/>.
+    /// This method is intended to be used by the validator's public <c>Validate</c> and <c>ValidateAsync</c> methods.
+    /// </summary>
+    /// <typeparam name="T">The type of the main instance to be validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources for the validator.</typeparam>
+    /// <param name="core">The compiled validator core instance, which provides snapshots and rules.</param>
+    /// <param name="value">The main instance to be validated.</param>
+    /// <param name="resources">The external resources.</param>
+    /// <param name="culture">Optional. The culture for messages. Defaults to <see cref="ValidatorsConfig.GlobalDefaults.DefaultCulture"/>.</param>
+    /// <returns>A new instance of <see cref="ExpressValidatorRunCtx{T, TExternalResources}"/> initialized for a new validation run.</returns>
+    internal static ExpressValidatorRunCtx<T, TExternalResources> ForNewValidatorCoreRun<T, TExternalResources>(
+        ExpressValidatorCore<T, TExternalResources> core,
+         T value, // Can be null, e.g., for root instance null checks.,
+        TExternalResources resources,
+        CultureInfo? culture)
+    {
+        return new ExpressValidatorRunCtx<T, TExternalResources>(
+            core.ValidatorName,
+            value,
+            resources,
+            core.SnapShots,
+            culture ?? ValidatorsConfig.GlobalDefaults.DefaultCulture,
+            null,
+            null);
+    }
 }
 
 /// <summary>
@@ -150,7 +180,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
             }
         }
 
-        ValidationInstance = value;
+        ValidationInstance = value!;
         Resources = resources;
     }
 
@@ -291,12 +321,21 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         _currentRuleFailure.AddValidationFailure(ValidationFailure.ForPropertyComponent(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
     }
 
-    internal void AddPreValidationFailure(PreValidationRuleFailureInfo<T, TExternalResources> failureInfo, ValidationFailure validationFailure)
+    /// <summary>
+    /// Adds a pre-validation failure to the validation result.
+    /// This method is typically called by <see cref="IPreValidationRule{T, TExternalResources}.PreValidate"/>
+    /// or <see cref="IPreValidationRule{T, TExternalResources}.PreValidateAsync"/>.
+    /// </summary>
+    /// <param name="failureInfo">Information about the pre-validation rule failure, including its explanation factory.</param>
+    /// <param name="validationFailure">The specific <see cref="ValidationFailure"/> object representing the failure.</param>
+    internal void AddPreValidationFailure([NotNull] PreValidationRuleFailureInfo<T, TExternalResources> failureInfo, [NotNull] ValidationFailure validationFailure)
     {
         _totalValidationFailures++;
-        // Create a new LogicalRuleFailure based on the provided info and its explanation
+        // Create a new PreValidationRuleFailure based on the provided info and its explanation
         _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this, failureInfo.RulesToSkip));
         _currentRuleFailure.AddValidationFailure(validationFailure);
+        _currentRuleFailureInfo = failureInfo;
+        _currentValidationFailureInfo = validationFailure.Info; // Assuming ValidationFailure has an 'Info' property of type ComponentFailureInfo
         Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
     }
 
@@ -334,7 +373,8 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         _availableSnapShots[index] = (snapShotIdentifier, _currentPropertyRuleFailures == 0);
     }
 
-
+    // Suppressing CA1033 because this is an explicit interface implementation,
+    // and the internal method provides the actual logic for internal usage.
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "<Pending>")]
     bool IConditionCtx<T, TExternalResources>.IsSnapShotValid(string snapShotIdentifier)
         => IsSnapShotValidInternal(snapShotIdentifier);
