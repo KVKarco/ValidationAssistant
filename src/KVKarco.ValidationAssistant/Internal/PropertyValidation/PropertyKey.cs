@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace KVKarco.ValidationAssistant.Internal;
+namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 /// <summary>
 /// Represents metadata about a member (property or field) of a validation instance.

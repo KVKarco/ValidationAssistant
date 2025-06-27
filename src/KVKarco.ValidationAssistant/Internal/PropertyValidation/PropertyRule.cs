@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 
 namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
@@ -46,7 +45,7 @@ internal abstract class PropertyRule<T, TExternalResources, TProperty, TContext>
         // It uses a global default explanation factory if no specific one is provided.
         Info = new PropertyRuleFailureInfo<T, TExternalResources, TProperty>(
             (context, _) => ValidatorsConfig.GlobalDefaults.Messages.PropertyValueMissingExplanation(context),
-            validatorName, RuleName, declaredOnLine, strategy);
+            validatorName, RuleName, declaredOnLine, RuleFailureStrategy.Continue);
         _ruleComponents = [.. ruleComponents]; // Converts the list of components to an immutable array.
     }
 
@@ -74,7 +73,7 @@ internal abstract class PropertyRule<T, TExternalResources, TProperty, TContext>
     {
         // Attempts to extract the property value. If it doesn't exist or shouldn't be validated (as per HasValue logic),
         // the property rule components are not executed.
-        if (HasValue(context, out Undefined<TProperty>? property))
+        if (HasValue(context, out Undefined<TProperty> property))
         {
             int index = 0;
 
@@ -108,7 +107,7 @@ internal abstract class PropertyRule<T, TExternalResources, TProperty, TContext>
     {
         // Attempts to extract the property value. If it doesn't exist or shouldn't be validated,
         // the property rule components are not executed.
-        if (HasValue(context, out Undefined<TProperty>? property))
+        if (HasValue(context, out Undefined<TProperty> property))
         {
             int index = 0;
 
@@ -138,8 +137,11 @@ internal abstract class PropertyRule<T, TExternalResources, TProperty, TContext>
     /// </summary>
     /// <param name="context">The validation run context.</param>
     /// <param name="property">When this method returns <see langword="true"/>, contains the extracted
-    /// property value wrapped in an <see cref="Undefined{TProperty}"/> instance.</param>
+    /// property value wrapped in an <see cref="Undefined{TProperty}"/> instance. This parameter will
+    /// never be <see langword="null"/>; it will always contain a valid <see cref="Undefined{TProperty}"/>
+    /// instance representing either a defined value or an undefined state.</param>
     /// <returns><see langword="true"/> if the property value could be successfully extracted and is available for validation;
-    /// otherwise, <see langword="false"/> (e.g., if the property is null and not meant for validation in this scenario).</returns>
-    protected abstract bool HasValue(TContext context, [NotNullWhen(true)] out Undefined<TProperty>? property);
+    /// otherwise, <see langword="false"/> (e.g., if the property is null and not meant for validation in this scenario,
+    /// or if the property's accessor threw an exception and the rule is designed to prevent further component execution).</returns>
+    protected abstract bool HasValue(TContext context, out Undefined<TProperty> property);
 }

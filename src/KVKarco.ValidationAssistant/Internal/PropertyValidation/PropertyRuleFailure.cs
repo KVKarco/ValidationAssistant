@@ -81,18 +81,26 @@ internal sealed class PropertyRuleFailure<TProperty> : RuleFailure
     {
         sb.AppendLine(DefaultNaming.Lines);
         sb.AppendLine(Info.Title);
-        sb.Append(Explanation);
 
-        if (_validationFailures is not null && _validationFailures.Count > 0)
+
+        if (Property.HasValue)
         {
-            sb.AppendLine();
-            sb.AppendLine("Property value: ");
-            sb.AppendLine(Property.ToString()); // Append string representation of the property's value
-
-            for (int i = 0; i < _validationFailures.Count; i++)
+            sb.Append("One or more failures occurred validating the property!");
+            if (_validationFailures is not null && _validationFailures.Count > 0)
             {
-                _validationFailures[i].AttachToExplanation(sb); // Append explanation for each nested validation failure
+                sb.AppendLine();
+                sb.AppendLine("Property value: ");
+                sb.AppendLine(Property.ToString()); // Append string representation of the property's value
+
+                for (int i = 0; i < _validationFailures.Count; i++)
+                {
+                    _validationFailures[i].AttachToExplanation(sb); // Append explanation for each nested validation failure
+                }
             }
+        }
+        else
+        {
+            sb.Append(Explanation);
         }
 
         sb.AppendLine(DefaultNaming.Lines);

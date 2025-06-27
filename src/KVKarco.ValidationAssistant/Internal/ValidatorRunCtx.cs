@@ -285,7 +285,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
 
     /// <summary>
     /// Adds a validation failure associated with a specific property to the validation result.
-    /// This updates failure counters and manages the current rule failure context.
+    /// This updates failure counters based on severity and manages the current rule failure context.
     /// </summary>
     /// <typeparam name="TProperty">The type of the property that failed validation.</typeparam>
     /// <param name="property">The <see cref="Undefined{TProperty}"/> instance representing the property and its value.</param>
@@ -296,8 +296,14 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// </exception>
     internal void AddPropertyRuleComponentFailure<TProperty>(Undefined<TProperty> property, ComponentFailureInfo<T, TExternalResources, TProperty> failureInfo)
     {
-        _currentPropertyRuleFailures++; // Increment failures for the current property rule
-        _totalValidationFailures++;     // Increment total failures for the entire run
+        // Only increment failure counts if the severity is not 'Info'.
+        // 'Info' level failures are typically for reporting/logging and do not indicate a break in validation.
+        if (failureInfo.Severity != FailureSeverity.Info)
+        {
+            _currentPropertyRuleFailures++; // Increment failures for the current property rule
+            _totalValidationFailures++;     // Increment total failures for the entire run
+        }
+
         _currentValidationFailureInfo = failureInfo; // Update the current validation failure info
 
         // If there's no current RuleFailure (meaning this is the first failure for a property rule),
@@ -338,6 +344,43 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         _currentRuleFailureInfo = failureInfo;
         _currentValidationFailureInfo = validationFailure.Info; // Assuming ValidationFailure has an 'Info' property of type ComponentFailureInfo
         Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
+    }
+
+    /// <summary>
+    /// Adds a failure indicating that a property's value could not be resolved or was considered "missing"
+    /// during property rule execution. This typically occurs when a property in a chain is null,
+    /// preventing further evaluation of its components.
+    /// <para>
+    /// This method logs the "missing value" as a specific type of rule failure
+    /// but **does not** contribute to the overall <see cref="_totalValidationFailures"/> count.
+    /// It explains *why* subsequent property components were skipped for this property,
+    /// rather than indicating a validation failure that invalidates the overall result.
+    /// </para>
+    /// </summary>
+    /// <typeparam name="TProperty">The type of the property that was missing.</typeparam>
+    /// <param name="property">The <see cref="Undefined{TProperty}"/> instance representing the missing property's state.</param>
+    /// <param name="failureInfo">The <see cref="PropertyRuleFailureInfo{T, TExternalResources, TProperty}"/> associated with the property rule.
+    /// This information is used to construct the <see cref="PropertyRuleFailure"/>.</param>
+    internal void AddPropertyRuleMissingValueFailure<TProperty>(
+        Undefined<TProperty> property,
+        [NotNull] PropertyRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
+    {
+        // This is the first failure for this specific property rule, so create a new PropertyRuleFailure.
+        // It uses the explanation factory from the provided failureInfo to generate the message.
+        _currentRuleFailure = new PropertyRuleFailure<TProperty>(
+            property,
+            CorrectPropertyPath,
+            failureInfo,
+            failureInfo.ExplanationFactory(this, property.Value)); // Pass property.Value to the explanation factory even if Undefined, as it may be relevant.
+
+        _currentRuleFailureInfo = failureInfo; // Set the current rule failure info.
+        Result.AddRuleFailure(_currentRuleFailure); // Add this rule failure to the overall validation result.
+
+        // IMPORTANT: The _totalValidationFailures is NOT incremented here.
+        // As per the refined design, a "missing value" for an optional property
+        // should stop further component evaluation for that property (as handled by PropertyRule's HasValue),
+        // but it does not inherently mean the *overall* validation result is invalid,
+        // unless an explicit rule (e.g., .NotNull()) is later applied and fails.
     }
 
     /// <summary>
@@ -414,4 +457,3 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         throw new ValidationRunException($"Snap shot: {snapShotIdentifier} value is not set.");
     }
 }
-

@@ -1,4 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Internal;
 
 namespace KVKarco.ValidationAssistant;
 
@@ -112,3 +113,20 @@ public delegate bool PreValidationPredicate<T>(T value);
 /// <param name="value">The value to evaluate against the pre-validation condition asynchronously.</param>
 /// <returns>A <see cref="Task{TResult}"/> that resolves to <see langword="true"/> if the pre-validation condition is met; otherwise, <see langword="false"/>.</returns>
 public delegate Task<bool> AsyncPreValidationPredicate<T>(T value, CancellationToken ct);
+
+/// <summary>
+/// Defines an internal delegate responsible for resolving (extracting) the value of a specific property
+/// from a given validation instance. This delegate is typically created by compiling an
+/// expression (e.g., a property selector like `x => x.SomeProperty`) and is used internally
+/// by property rules to efficiently access the values they need to validate.
+/// </summary>
+/// <typeparam name="T">The type of the main validation instance from which the property value is to be extracted.</typeparam>
+/// <typeparam name="TProperty">The type of the property whose value is to be extracted.</typeparam>
+/// <param name="validationInstance">The instance of type <typeparamref name="T"/> from which the property value will be resolved.</param>
+/// <returns>
+/// An <see cref="Undefined{TProperty}"/> instance representing the resolved property value.
+/// This wrapper can distinguish between a property that is genuinely <see langword="null"/>
+/// and one that is conceptually "undefined" or not present due to, for example, a null intermediate
+/// in a property chain (e.g., `x.Address.Street` where `Address` is null).
+/// </returns>
+internal delegate Undefined<TProperty> PropertyValueResolver<T, TProperty>(T validationInstance);
