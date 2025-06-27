@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace KVKarco.ValidationAssistant;
+namespace KVKarco.ValidationAssistant.Abstractions;
 
 /// <summary>
 /// Represents the fundamental validation context for a single object instance.

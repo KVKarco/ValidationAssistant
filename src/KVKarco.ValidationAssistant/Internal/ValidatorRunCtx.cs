@@ -1,4 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Exceptions;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.Internal.ExpressValidator;
 using KVKarco.ValidationAssistant.Internal.PreValidation;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;

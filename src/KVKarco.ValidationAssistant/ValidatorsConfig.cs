@@ -1,4 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Exceptions;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 

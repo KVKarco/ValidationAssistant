@@ -1,4 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Internal;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Internal;
 using KVKarco.ValidationAssistant.Internal.ExpressValidator;
 using KVKarco.ValidationAssistant.Internal.Utilities;
 using System.Diagnostics.CodeAnalysis;
@@ -105,7 +106,7 @@ public abstract class ExpressValidator<T, TExternalResources> :
     /// By default, it ensures the instance and external resources are not null.
     /// </summary>
     /// <param name="builder">A builder that provides fluent methods for defining pre-validation rules.</param>
-    protected virtual void ExpressPreValidationRules([NotNull] IPreValidationRuleExpressionBuilder<T, TExternalResources> builder)
+    protected virtual void ExpressPreValidationRules([NotNull] IPreValidationDefinitionBuilder<T, TExternalResources> builder)
     {
         // Default pre-validation: ensure the main instance is not null.
         builder.Ensure(x => x is not null);
@@ -119,7 +120,7 @@ public abstract class ExpressValidator<T, TExternalResources> :
     /// This is where the core business logic validation rules are specified using the provided builder.
     /// </summary>
     /// <param name="builder">A builder that provides fluent methods for defining main validation rules (e.g., for properties).</param>
-    protected abstract void ExpressRules(IRuleExpressionBuilder<T, TExternalResources> builder);
+    protected abstract void ExpressRules(ICoreValidationDefinitionBuilder<T, TExternalResources> builder);
 }
 
 /// <summary>
@@ -138,46 +139,4 @@ public abstract class ExpressValidator<T> : ExpressValidator<T, EmptyValidationR
     protected ExpressValidator() : base(EmptyValidationResources.Empty)
     {
     }
-}
-
-/// <summary>
-/// Defines the public contract for a compiled or configured validator, primarily intended for consumption via Dependency Injection (DI).
-/// While generic, this interface is designed to expose the validation capabilities of validators that originate from the ExpressValidator,
-/// allowing for type-agnostic interaction with validation services and results without direct dependency on the concrete ExpressValidator implementation types.
-/// </summary>
-/// <typeparam name="T">The type of the instance that this validator is designed to validate.</typeparam>
-public interface ICoreValidator<T>
-{
-    /// <summary>
-    /// Gets the unique name of the validator.
-    /// </summary>
-    string ValidatorName { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether this validator can be executed synchronously.
-    /// </summary>
-    bool CanRunSynchronously { get; }
-
-    /// <summary>
-    /// Synchronously validates the specified <paramref name="value"/>.
-    /// </summary>
-    /// <param name="value">The instance of <typeparamref name="T"/> to validate.</param>
-    /// <param name="culture">Optional. The culture information to use for generating validation messages. Defaults to <see cref="ValidatorsConfig.GlobalDefaults.DefaultCulture"/> if not provided.</param>
-    /// <returns>A <see cref="ValidatorRunResult"/> containing any validation failures.</returns>
-    ValidatorRunResult Validate(T value, CultureInfo? culture = null);
-
-    /// <summary>
-    /// Asynchronously validates the specified <paramref name="value"/>.
-    /// </summary>
-    /// <param name="value">The instance of <typeparamref name="T"/> to validate.</param>
-    /// <param name="culture">Optional. The culture information to use for generating validation messages. Defaults to <see cref="ValidatorsConfig.GlobalDefaults.DefaultCulture"/> if not provided.</param>
-    /// <param name="ct">Optional. A <see cref="CancellationToken"/> to observe while waiting for the validation to complete.</param>
-    /// <returns>A <see cref="Task{TResult}"/> that represents the asynchronous validation operation,
-    /// yielding a <see cref="ValidatorRunResult"/> containing any validation failures.</returns>
-    Task<ValidatorRunResult> ValidateAsync(T value, CultureInfo? culture = null, CancellationToken ct = default);
-}
-
-public interface IInitialPropertyRuleBuilder<T, TExternalResources, out TProperty>
-{
-    //empty for now
 }

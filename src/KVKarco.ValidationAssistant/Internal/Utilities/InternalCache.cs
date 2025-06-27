@@ -1,4 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Internal.ExpressValidator;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Internal.ExpressValidator;
 using System.Collections.Concurrent;
 
 namespace KVKarco.ValidationAssistant.Internal.Utilities;
@@ -37,8 +38,8 @@ internal static class InternalCache
     /// </remarks>
     public static ExpressValidatorCore<T, TExternalResources> GetOrAddExpressValidatorCore<T, TExternalResources>(
         Type validatorType,
-        Action<IPreValidationRuleExpressionBuilder<T, TExternalResources>> preValidationRuleCreator,
-        Action<IRuleExpressionBuilder<T, TExternalResources>> ruleCreator)
+        Action<IPreValidationDefinitionBuilder<T, TExternalResources>> preValidationRuleCreator,
+        Action<ICoreValidationDefinitionBuilder<T, TExternalResources>> ruleCreator)
     {
         // TODO: The ExpressValidatorCoreBuilder class needs to be implemented.
         // It should implement both IPreValidationRuleExpressionBuilder<T, TExternalResources> and IRuleExpressionBuilder<T, TExternalResources>.

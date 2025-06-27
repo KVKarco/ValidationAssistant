@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+
+namespace KVKarco.ValidationAssistant;
 
 /// <summary>
 /// Represents a simple, synchronous predicate that validates a property's value.
