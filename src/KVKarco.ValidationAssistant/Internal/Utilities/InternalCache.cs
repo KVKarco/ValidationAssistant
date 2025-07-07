@@ -51,11 +51,6 @@ internal static class InternalCache
         Action<IPreValidationDefinitionBuilder<T, TExternalResources>> preValidationRuleCreator,
         Action<ICoreValidationDefinitionBuilder<T, TExternalResources>> ruleCreator)
     {
-        // TODO: The ExpressValidatorCoreBuilder class needs to be implemented.
-        // It should implement both IPreValidationDefinitionBuilder<T, TExternalResources> and ICoreValidationDefinitionBuilder<T, TExternalResources>.
-        // This builder is responsible for collecting the rules defined by the user in ExpressPreValidationRules and ExpressRules,
-        // and then compiling them into an ExpressValidatorCore.
-
         Lazy<ValidatorCore> validationCore = _coresCache.GetOrAdd(
             validatorType,
             (type, action) => new Lazy<ValidatorCore>(() =>
@@ -67,13 +62,10 @@ internal static class InternalCache
                 : myAttribute.ValidatorName;
 
                 // Create an instance of the builder, which will gather the rules
-                // ExpressValidatorCoreBuilder<T, TExternalResources> builder = new(name); // Uncomment once implemented
-                // action.preValidationRuleCreator(builder); // Uncomment once implemented
-                // action.ruleCreator(builder); // Uncomment once implemented
-                // return builder.CreateValidatorCore(); // Uncomment once implemented
-
-                // Placeholder return - replace with actual builder creation and core return
-                throw new NotImplementedException("ExpressValidatorCoreBuilder needs to be implemented to create the validator core.");
+                ExpressValidatorCoreBuilder<T, TExternalResources> builder = new(name);
+                action.preValidationRuleCreator(builder); // Call the pre-validation rule creator
+                action.ruleCreator(builder); // Call the main rule creator
+                return builder.CreateValidatorCore(); // Return the compiled validator core
             }),
             (preValidationRuleCreator, ruleCreator)); // Passed as state to the factory delegate
 
@@ -110,9 +102,7 @@ internal static class InternalCache
     /// </remarks>
     public static PropertyCtx<T, TProperty> GetOrAddPropertyCtx<T, TProperty>(
         Expression<Func<T, TProperty>> memberSelector,
-        bool removeLastMember = false, // Renamed from original to be descriptive if it affects the last member.
-                                       // If it means 'removeStartName' from ExpressionFactory, the naming is inconsistent.
-                                       // Assuming it's `removeStartName` as per the call to ExpressionFactory.
+        bool removeStartName = false,
         bool isForCollection = false)
     {
         // Normalize the expression to a string key for caching.
@@ -126,7 +116,7 @@ internal static class InternalCache
         // The factory function receives the key and the original expression as state.
         PropertyCtx context = _membersCtxCache.GetOrAdd(
             propSelectorDefinition,
-            (key, expression) => ExpressionFactory.CreatePropertyCtx((Expression<Func<T, TProperty>>)expression, removeLastMember, isForCollection),
+            (key, expression) => ExpressionFactory.CreatePropertyCtx((Expression<Func<T, TProperty>>)expression, removeStartName, isForCollection),
             memberSelector); // Pass the original memberSelector as state
 
         // Cast the non-generic PropertyCtx to its specific generic type.
