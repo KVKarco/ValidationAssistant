@@ -30,13 +30,13 @@ internal sealed class ResourcesPreValidationRule<T, TExternalResources> :
     /// for a synchronous pre-validation predicate.
     /// </summary>
     /// <param name="predicate">The synchronous predicate to apply to the external resources.</param>
-    /// <param name="info">The failure information associated with this pre-validation rule, passed to the base class.</param>
     /// <param name="failureExplanation">A user-defined explanation message for the failure, passed to the base class.</param>
     public ResourcesPreValidationRule(
+        ReadOnlySpan<char> validatorName,
+        int declaredOnLine,
         PreValidationPredicate<TExternalResources> predicate,
-        PreValidationRuleFailureInfo<T, TExternalResources> info,
-        string failureExplanation)
-        : base(info, true, failureExplanation)
+        string? failureExplanation)
+        : base(validatorName, declaredOnLine, true, failureExplanation)
     {
         _predicate = predicate;
         _asyncPredicate = null!; // Explicitly null for synchronous variant.
@@ -47,13 +47,13 @@ internal sealed class ResourcesPreValidationRule<T, TExternalResources> :
     /// for an asynchronous pre-validation predicate.
     /// </summary>
     /// <param name="asyncPredicate">The asynchronous predicate to apply to the external resources.</param>
-    /// <param name="info">The failure information associated with this pre-validation rule, passed to the base class.</param>
     /// <param name="failureExplanation">A user-defined explanation message for the failure, passed to the base class.</param>
     public ResourcesPreValidationRule(
+        ReadOnlySpan<char> validatorName,
+        int declaredOnLine,
         AsyncPreValidationPredicate<TExternalResources> asyncPredicate,
-        PreValidationRuleFailureInfo<T, TExternalResources> info,
-        string failureExplanation)
-        : base(info, false, failureExplanation)
+        string? failureExplanation)
+        : base(validatorName, declaredOnLine, false, failureExplanation)
     {
         _predicate = null!; // Explicitly null for asynchronous variant.
         _asyncPredicate = asyncPredicate;

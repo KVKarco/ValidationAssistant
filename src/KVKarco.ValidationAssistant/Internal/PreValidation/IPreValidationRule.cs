@@ -24,11 +24,6 @@ internal interface IPreValidationRule<T, TExternalResources>
     ReadOnlySpan<char> RuleName { get; }
 
     /// <summary>
-    /// Gets an user predefined explanation message for this pre-validation rule failure or use default message.
-    /// </summary>
-    string FailureExplanation { get; }
-
-    /// <summary>
     /// Retrieves the default error message for this pre-validation rule when it fails.
     /// This method allows for dynamic message generation based on the validation context.
     /// </summary>

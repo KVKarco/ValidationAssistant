@@ -27,13 +27,13 @@ internal sealed class MainInstancePreValidationRule<T, TExternalResources> :
     /// for a synchronous pre-validation predicate.
     /// </summary>
     /// <param name="predicate">The synchronous predicate to apply to the main instance. Must not be <see langword="null"/>.</param>
-    /// <param name="info">The failure information associated with this pre-validation rule.</param>
     /// <param name="failureExplanation">A user-defined explanation message for the failure, passed to the base class.</param>
     public MainInstancePreValidationRule(
+        ReadOnlySpan<char> validatorName,
+        int declaredOnLine,
         PreValidationPredicate<T> predicate,
-        PreValidationRuleFailureInfo<T, TExternalResources> info,
-        string failureExplanation)
-        : base(info, true, failureExplanation) // Corrected: base expects canRunSynchronously, then failureExplanation
+        string? failureExplanation)
+        : base(validatorName, declaredOnLine, true, failureExplanation)
     {
         _predicate = predicate;
         _asyncPredicate = null!; // Explicitly null for synchronous variant.
@@ -44,13 +44,13 @@ internal sealed class MainInstancePreValidationRule<T, TExternalResources> :
     /// for an asynchronous pre-validation predicate.
     /// </summary>
     /// <param name="asyncPredicate">The asynchronous predicate to apply to the main instance. Must not be <see langword="null"/>.</param>
-    /// <param name="info">The failure information associated with this pre-validation rule.</param>
     /// <param name="failureExplanation">A user-defined explanation message for the failure, passed to the base class.</param>
     public MainInstancePreValidationRule(
+        ReadOnlySpan<char> validatorName,
+        int declaredOnLine,
         AsyncPreValidationPredicate<T> asyncPredicate,
-        PreValidationRuleFailureInfo<T, TExternalResources> info,
-        string failureExplanation)
-        : base(info, false, failureExplanation) // Corrected: base expects canRunSynchronously, then failureExplanation
+        string? failureExplanation)
+        : base(validatorName, declaredOnLine, false, failureExplanation)
     {
         _predicate = null!; // Explicitly null for asynchronous variant.
         _asyncPredicate = asyncPredicate;

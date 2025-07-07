@@ -339,7 +339,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     {
         _totalValidationFailures++;
         // Create a new PreValidationRuleFailure based on the provided info and its explanation
-        _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this, failureInfo.RulesToSkip));
+        _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this));
         _currentRuleFailure.AddValidationFailure(validationFailure);
         _currentRuleFailureInfo = failureInfo;
         _currentValidationFailureInfo = validationFailure.Info; // Assuming ValidationFailure has an 'Info' property of type ComponentFailureInfo

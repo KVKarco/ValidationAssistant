@@ -20,13 +20,13 @@ internal abstract class PreValidationRule<T, TExternalResources> :
     /// <param name="info">The failure information associated with this pre-validation rule.</param>
     /// <param name="failureExplanation">An optional predefined failure message to use if this rule fails.</param>
     protected PreValidationRule(
-        PreValidationRuleFailureInfo<T, TExternalResources> info,
+        ReadOnlySpan<char> validatorName,
+        int declaredOnLine,
         bool canRunSynchronously,
-        string failureExplanation)
+        string? failureExplanation)
     {
-        _info = info;
+        _info = new PreValidationRuleFailureInfo<T, TExternalResources>(validatorName, RuleName, declaredOnLine, failureExplanation);
         CanRunSynchronously = canRunSynchronously;
-        FailureExplanation = failureExplanation;
     }
 
     /// <summary>
@@ -38,11 +38,6 @@ internal abstract class PreValidationRule<T, TExternalResources> :
     /// When overridden in a derived class, gets the unique or descriptive name of this pre-validation rule.
     /// </summary>
     public abstract ReadOnlySpan<char> RuleName { get; }
-
-    /// <summary>
-    /// Gets an user predefined explanation message for this pre-validation rule failure or use default message.
-    /// </summary>
-    public string FailureExplanation { get; }
 
     /// <summary>
     /// When overridden in a derived class, retrieves the default error message for this
