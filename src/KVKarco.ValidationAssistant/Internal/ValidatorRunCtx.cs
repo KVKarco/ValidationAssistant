@@ -1,6 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidator;
+using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 using KVKarco.ValidationAssistant.Internal.PreValidation;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using KVKarco.ValidationAssistant.Internal.ValidationFlow;

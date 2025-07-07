@@ -1,5 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidator;
+using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;

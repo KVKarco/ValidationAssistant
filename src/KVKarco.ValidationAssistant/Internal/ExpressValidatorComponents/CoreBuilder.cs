@@ -3,7 +3,7 @@ using KVKarco.ValidationAssistant.Exceptions;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
-namespace KVKarco.ValidationAssistant.Internal.ExpressValidator;
+namespace KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 
 internal sealed class ExpressValidatorCoreBuilder<T, TExternalResources> :
     ValidatorCoreBuilder<T, TExternalResources, ExpressValidatorRunCtx<T, TExternalResources>>,

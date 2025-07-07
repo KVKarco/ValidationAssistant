@@ -1,8 +1,7 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal;
 using System.Globalization;
 
-namespace KVKarco.ValidationAssistant.Internal.ExpressValidator;
+namespace KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 
 public readonly record struct ExpressValidatorRunMetaData
 {

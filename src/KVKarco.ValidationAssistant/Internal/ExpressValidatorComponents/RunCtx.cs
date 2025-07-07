@@ -2,7 +2,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
-namespace KVKarco.ValidationAssistant.Internal.ExpressValidator;
+namespace KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 
 /// <summary>
 /// Represents a sealed, concrete implementation of <see cref="ValidatorRunCtx{T, TExternalResources}"/>

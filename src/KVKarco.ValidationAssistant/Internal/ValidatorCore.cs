@@ -1,5 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidator;
+using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 using System.Collections.Immutable;
 
 namespace KVKarco.ValidationAssistant.Internal;

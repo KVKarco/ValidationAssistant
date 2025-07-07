@@ -1,6 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 
-namespace KVKarco.ValidationAssistant.Internal.ExpressValidator;
+namespace KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 
 /// <summary>
 /// Represents the sealed, concrete implementation of the validator core specifically designed

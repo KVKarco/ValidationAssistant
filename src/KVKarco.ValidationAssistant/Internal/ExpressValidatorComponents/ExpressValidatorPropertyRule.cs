@@ -1,6 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
-namespace KVKarco.ValidationAssistant.Internal.ExpressValidator;
+namespace KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 
 
 /// <summary>
