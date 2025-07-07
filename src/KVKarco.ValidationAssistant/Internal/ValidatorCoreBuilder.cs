@@ -38,11 +38,18 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     protected readonly List<IPreValidationRule<T, TExternalResources>> _preValidationRules;
 
     /// <summary>
-    /// A list of <see cref="ValidatorRule{T, TExternalResources, TContext}"/> instances that constitute
+    /// A list of <see cref="IValidatorRule{T, TExternalResources, TContext}"/> instances that constitute
     /// the main validation logic. This list will be populated by the concrete builder's
     /// implementation of <see cref="ICoreValidationDefinitionBuilder{T, TExternalResources}"/>.
     /// </summary>
-    protected readonly List<ValidatorRule<T, TExternalResources, TContext>> _validationRules;
+    protected readonly List<IValidatorRule<T, TExternalResources, TContext>> _rules;
+
+    /// <summary>
+    /// Holds the <see cref="IBuildableRule{T, TExternalResources, TContext}"/> instance that is currently
+    /// being configured via the fluent API. This allows subsequent fluent calls to apply configurations
+    /// to the most recently defined rule. It is set to <see langword="null"/> after the rule is built and added.
+    /// </summary>
+    protected IBuildableRule<T, TExternalResources, TContext>? _ruleToBeAdded;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidatorCoreBuilder{T, TExternalResources, TContext}"/> class.
@@ -53,7 +60,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _validatorName = validatorName;
         _snapShots = [];
         _preValidationRules = [];
-        _validationRules = [];
+        _rules = []; // Initialize the new _rules list
 
         // Initialize default failure strategies from global configuration.
         RuleFailureStrategy = ValidatorsConfig.GlobalDefaults.OnRuleFailure;
@@ -150,5 +157,32 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         // Create a new ResourcesPreValidationRule (asynchronous version) and add it.
         ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
         _preValidationRules.Add(rule);
+    }
+
+    /// <summary>
+    /// Abstract method that concrete builder implementations must override to create
+    /// and return the final <see cref="ValidatorCore"/> instance, encapsulating all
+    /// defined pre-validation and core validation rules.
+    /// </summary>
+    /// <returns>A compiled <see cref="ValidatorCore"/> instance.</returns>
+    internal abstract ValidatorCore CreateValidatorCore();
+
+    /// <summary>
+    /// Resolves the last rule that was being built via the fluent API and adds it
+    /// to the internal list of validation rules. This method is typically called
+    /// implicitly by the fluent API whenever a new rule definition begins,
+    /// or explicitly when the rule definition is complete.
+    /// </summary>
+    protected virtual void ResolveLastRule()
+    {
+        if (_ruleToBeAdded is not null)
+        {
+            // Capture the builder instance and null out the field to prepare for the next rule.
+            IBuildableRule<T, TExternalResources, TContext> builder = _ruleToBeAdded;
+            _ruleToBeAdded = null;
+
+            // Build the concrete ValidatorRule from the IBuildableRule and add it to the list.
+            _rules.Add(builder.Build());
+        }
     }
 }

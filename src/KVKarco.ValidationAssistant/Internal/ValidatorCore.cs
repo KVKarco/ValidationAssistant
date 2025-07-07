@@ -1,4 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Internal.PreValidation;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Internal.ExpressValidator;
 using System.Collections.Immutable;
 
 namespace KVKarco.ValidationAssistant.Internal;
@@ -28,6 +29,24 @@ internal abstract class ValidatorCore
     /// rule definition visualization, or other meta-information purposes.
     /// </summary>
     public ImmutableArray<string>? SnapShots { get; }
+
+    /// <summary>
+    /// Factory method to create a concrete <see cref="ExpressValidatorCore{T, TExternalResources}"/> instance.
+    /// This method simplifies the creation of the specific validator core type used by ExpressValidator.
+    /// </summary>
+    /// <typeparam name="T">The type of the main object instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources that can be accessed by the validation rules.</typeparam>
+    /// <param name="validatorName">The descriptive name of the validator core.</param>
+    /// <param name="snapShots">An optional list of string snapshots.</param>
+    /// <param name="preValidationRules">A list of <see cref="IPreValidationRule{T, TExternalResources}"/> instances.</param>
+    /// <param name="rules">A list of compiled main <see cref="IValidatorRule{T, TExternalResources, ExpressValidatorRunCtx{T, TExternalResources}}"/> instances.</param>
+    /// <returns>A new <see cref="ExpressValidatorCore{T, TExternalResources}"/> instance.</returns>
+    public static ExpressValidatorCore<T, TExternalResources> ForExpressValidator<T, TExternalResources>(
+        string validatorName,
+        List<string>? snapShots,
+        List<IPreValidationRule<T, TExternalResources>> preValidationRules,
+        List<IValidatorRule<T, TExternalResources, ExpressValidatorRunCtx<T, TExternalResources>>> rules)
+        => new(validatorName, snapShots, preValidationRules, rules);
 }
 
 /// <summary>

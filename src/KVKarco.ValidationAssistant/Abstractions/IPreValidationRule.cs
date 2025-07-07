@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.PreValidation;
+﻿using KVKarco.ValidationAssistant.Internal;
+
+namespace KVKarco.ValidationAssistant.Abstractions;
 
 /// <summary>
 /// Defines the contract for an internal pre-validation rule.
@@ -50,4 +52,3 @@ internal interface IPreValidationRule<T, TExternalResources>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
     ValueTask PreValidateAsync(ValidatorRunCtx<T, TExternalResources> context, CancellationToken ct);
 }
-

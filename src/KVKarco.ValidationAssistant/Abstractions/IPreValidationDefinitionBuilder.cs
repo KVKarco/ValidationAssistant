@@ -70,4 +70,3 @@ public interface IPreValidationDefinitionBuilder<T, TExternalResources>
         string? explanationMessage = null,
         [CallerLineNumber] int callingFileLineNumber = 0);
 }
-

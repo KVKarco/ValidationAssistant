@@ -1,4 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Internal.PreValidation;
+﻿using KVKarco.ValidationAssistant.Abstractions;
 
 namespace KVKarco.ValidationAssistant.Internal.ExpressValidator;
 

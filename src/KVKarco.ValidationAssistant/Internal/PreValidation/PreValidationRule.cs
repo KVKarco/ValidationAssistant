@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.PreValidation;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+
+namespace KVKarco.ValidationAssistant.Internal.PreValidation;
 
 /// <summary>
 /// Provides an abstract base class for defining pre-validation rules.

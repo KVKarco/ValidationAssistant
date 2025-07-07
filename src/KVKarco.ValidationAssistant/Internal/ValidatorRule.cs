@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.Internal;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+
+namespace KVKarco.ValidationAssistant.Internal;
 
 /// <summary>
 /// Represents a common abstract base class for internal validator rules within the framework.

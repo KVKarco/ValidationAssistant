@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.Internal;
+﻿using KVKarco.ValidationAssistant.Internal;
+
+namespace KVKarco.ValidationAssistant.Abstractions;
 
 /// <summary>
 /// Defines the contract for an internal validator rule, specifying the core methods
