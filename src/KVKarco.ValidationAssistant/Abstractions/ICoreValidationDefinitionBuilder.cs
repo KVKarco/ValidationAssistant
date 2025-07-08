@@ -10,7 +10,8 @@
 /// <typeparam name="T">The type of the instance being validated by this builder.</typeparam>
 /// <typeparam name="TExternalResources">The type providing external resources or dependencies that
 /// might be required for rule evaluation or condition checking.</typeparam>
-public interface ICoreValidationDefinitionBuilder<T, TExternalResources> : IValidationDefinitionBuilder<T, TExternalResources>
+public interface ICoreValidationDefinitionBuilder<T, TExternalResources> :
+    IValidationDefinitionBuilder<T, TExternalResources>
 {
     // The UseFor method is now inherited from IValidatorDefinitionBuilder.
 

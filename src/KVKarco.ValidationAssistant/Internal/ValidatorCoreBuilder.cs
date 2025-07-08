@@ -16,7 +16,9 @@ namespace KVKarco.ValidationAssistant.Internal;
 /// <typeparam name="TContext">The specific type of <see cref="ValidatorRunCtx{T, TExternalResources}"/>
 /// that this builder will use when compiling the validator core.</typeparam>
 internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
-    IPreValidationDefinitionBuilder<T, TExternalResources>
+    IPreValidationDefinitionBuilder<T, TExternalResources>,
+    IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources>,
+    IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources>
     where TContext : ValidatorRunCtx<T, TExternalResources>
 {
     /// <summary>
@@ -65,6 +67,36 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         // Initialize default failure strategies from global configuration.
         RuleFailureStrategy = ValidatorsConfig.GlobalDefaults.OnRuleFailure;
         RuleComponentsFailureStrategy = ValidatorsConfig.GlobalDefaults.OnComponentFailure;
+    }
+
+    public IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources> UseWhen(
+        ValidationCondition<T, TExternalResources> condition,
+        Action rulesToUseWhenConditionIsMet,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        return null!;
+    }
+
+    public IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources> UseWhenAsync(
+        AsyncValidationCondition<T, TExternalResources> condition,
+        Action rulesToUseWhenConditionIsMet,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        return null!;
+    }
+
+    public void OtherwiseUse(
+        Action rulesToUseWhenConditionIsNotMet,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void OtherwiseUseAsync(
+        Action rulesToUseWhenConditionIsNotMet,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        throw new NotImplementedException();
     }
 
     /// <summary>

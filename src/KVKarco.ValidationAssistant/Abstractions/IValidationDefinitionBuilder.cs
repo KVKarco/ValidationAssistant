@@ -6,13 +6,14 @@ namespace KVKarco.ValidationAssistant.Abstractions;
 /// <summary>
 /// Defines a foundational, generic contract for building and configuring any type of validator
 /// within the ValidationAssistant framework. This interface serves as the base for
-/// more specific validator definition builders (e.g., for ExpressValidator, FluentValidator, etc.),
+/// more specific validator definition builders (e.g., for ExpressValidator, ArgumentsGuard, etc.),
 /// providing common capabilities or markers for validator construction.
 /// </summary>
 /// <typeparam name="T">The type of the instance being validated by the builder.</typeparam>
 /// <typeparam name="TExternalResources">The type providing external resources or dependencies that
 /// might be required for validator construction or evaluation.</typeparam>
-public interface IValidationDefinitionBuilder<T, TExternalResources>
+public interface IValidationDefinitionBuilder<T, TExternalResources> :
+    IConditionalFlowRuleBuilder<T, TExternalResources>
 {
     /// <summary>
     /// Initiates the definition of validation rules for a specific property of the instance <typeparamref name="T"/>.
