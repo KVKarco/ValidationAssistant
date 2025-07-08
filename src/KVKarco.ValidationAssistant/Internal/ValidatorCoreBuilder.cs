@@ -78,6 +78,58 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         RuleComponentsFailureStrategy = ValidatorsConfig.GlobalDefaults.OnComponentFailure;
     }
 
+    public RuleFailureStrategy RuleFailureStrategy { get; set; }
+
+    public ComponentFailureStrategy RuleComponentsFailureStrategy { get; set; }
+
+    public void Ensure(
+        PreValidationPredicate<T> predicate,
+        string? explanationMessage = null,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        RuleCreationException.ThrowIfNull(predicate);
+
+        // Create a new MainInstancePreValidationRule and add it to the list of pre-validation rules.
+        MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
+        _preValidationRules.Add(rule);
+    }
+
+    public void EnsureAsync(
+        AsyncPreValidationPredicate<T> predicate,
+        string? explanationMessage = null,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        RuleCreationException.ThrowIfNull(predicate);
+
+        // Create a new MainInstancePreValidationRule (asynchronous version) and add it.
+        MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
+        _preValidationRules.Add(rule);
+    }
+
+    public void EnsureResources(
+        PreValidationPredicate<TExternalResources> predicate,
+        string? explanationMessage = null,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        RuleCreationException.ThrowIfNull(predicate);
+
+        // Create a new ResourcesPreValidationRule and add it to the list of pre-validation rules.
+        ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
+        _preValidationRules.Add(rule);
+    }
+
+    public void EnsureResourcesAsync(
+        AsyncPreValidationPredicate<TExternalResources> predicate,
+        string? explanationMessage = null,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        RuleCreationException.ThrowIfNull(predicate);
+
+        // Create a new ResourcesPreValidationRule (asynchronous version) and add it.
+        ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
+        _preValidationRules.Add(rule);
+    }
+
     public IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources> UseWhen(
         ValidationCondition<T, TExternalResources> condition,
         Action rulesToUseWhenConditionIsMet,
@@ -186,83 +238,20 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
 
         rulesToUseWhenConditionIsNotMet(); // Execute the action to populate rules for the 'otherwise' block
-        ResolveLastRule(); // Resolve any rules added within the action
-
-        // Calculate the number of rules added within the 'otherwise' block
-        int rulesAddedInOtherwiseBlock = _rules.Count - reservationIndex - 1;
+        ResolveLastRule(); // Resolve the last rule added from the action
 
         // Create and place the 'Otherwise' ConditionalFlowValidatorRule in the reserved slot.
         // This rule will be executed if the 'when' condition was false.
         SetRuleToReservedSlot(
             new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
                 _validatorName.AsSpan(),
-                rulesAddedInOtherwiseBlock, // This is the skip count if 'otherwise' condition is true (meaning 'when' was true)
+                _rules.Count - reservationIndex - 1, // This is the skip count if 'otherwise' condition is true (meaning 'when' was true)
                 true, // This is an 'otherwise' block
                 asyncCondition, // Use the original asynchronous condition
                 callingFileLineNumber),
             reservationIndex); // Place it at the start of the 'otherwise' block
 
         _conditionToChain = null; // Clear the chained condition as the block is complete
-    }
-
-    /// <summary>
-    /// Gets or sets the default strategy to apply when a validation rule fails.
-    /// This strategy dictates how the validation process should continue or stop.
-    /// </summary>
-    public RuleFailureStrategy RuleFailureStrategy { get; set; }
-
-    /// <summary>
-    /// Gets or sets the default strategy to apply when a component within a property rule fails.
-    /// This strategy dictates how the property rule's component execution should continue or exit.
-    /// </summary>
-    public ComponentFailureStrategy RuleComponentsFailureStrategy { get; set; }
-
-    public void Ensure(
-        PreValidationPredicate<T> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        RuleCreationException.ThrowIfNull(predicate);
-
-        // Create a new MainInstancePreValidationRule and add it to the list of pre-validation rules.
-        MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
-
-    public void EnsureAsync(
-        AsyncPreValidationPredicate<T> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        RuleCreationException.ThrowIfNull(predicate);
-
-        // Create a new MainInstancePreValidationRule (asynchronous version) and add it.
-        MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
-
-    public void EnsureResources(
-        PreValidationPredicate<TExternalResources> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        RuleCreationException.ThrowIfNull(predicate);
-
-        // Create a new ResourcesPreValidationRule and add it to the list of pre-validation rules.
-        ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
-
-    public void EnsureResourcesAsync(
-        AsyncPreValidationPredicate<TExternalResources> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        RuleCreationException.ThrowIfNull(predicate);
-
-        // Create a new ResourcesPreValidationRule (asynchronous version) and add it.
-        ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
     }
 
     /// <summary>
