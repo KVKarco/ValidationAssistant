@@ -40,11 +40,11 @@ internal static class DefaultNaming
 
     #region generic validator rules names
 
-    internal const string ConditionWhenRule = "ConditionWhen-ValidatorRule";
-    internal const string ConditionWhenAsyncRule = "ConditionWhen-AsyncValidatorRule";
+    internal const string ConditionWhenRule = "ConditionalFlowWhen-ValidatorRule";
+    internal const string ConditionWhenAsyncRule = "ConditionalFlowWhen-AsyncValidatorRule";
 
-    internal const string ConditionOtherwiseRule = "ConditionOtherwise-ValidatorRule";
-    internal const string ConditionOtherwiseAsyncRule = "ConditionOtherwise-AsyncValidatorRule";
+    internal const string ConditionOtherwiseRule = "ConditionalFlowOtherwise-ValidatorRule";
+    internal const string ConditionOtherwiseAsyncRule = "ConditionalFlowOtherwise-AsyncValidatorRule";
 
     internal const string PropertyRule = "Property-ValidatorRule";
     internal const string PropertyAsyncRule = "Property-AsyncValidatorRule";

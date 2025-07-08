@@ -1,6 +1,7 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.Internal.PreValidation;
+using KVKarco.ValidationAssistant.Internal.ValidationFlow;
 using System.Runtime.CompilerServices;
 
 namespace KVKarco.ValidationAssistant.Internal;
@@ -17,6 +18,7 @@ namespace KVKarco.ValidationAssistant.Internal;
 /// that this builder will use when compiling the validator core.</typeparam>
 internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     IPreValidationDefinitionBuilder<T, TExternalResources>,
+    IConditionalFlowRuleBuilder<T, TExternalResources>, // Added for UseWhen/UseWhenAsync
     IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources>,
     IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources>
     where TContext : ValidatorRunCtx<T, TExternalResources>
@@ -54,6 +56,13 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     protected IBuildableRule<T, TExternalResources, TContext>? _ruleToBeAdded;
 
     /// <summary>
+    /// Stores the condition delegate (sync or async) from the correct UseWhen/UseWhenAsync call.
+    /// This is used by the subsequent OtherwiseUse/OtherwiseUseAsync call to create the corresponding
+    /// ConditionalFlowValidatorRule. This field supports the chaining of conditional blocks.
+    /// </summary>
+    protected Delegate? _conditionToChain;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ValidatorCoreBuilder{T, TExternalResources, TContext}"/> class.
     /// </summary>
     /// <param name="validatorName">The name of the validator being built.</param>
@@ -74,7 +83,28 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         Action rulesToUseWhenConditionIsMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        return null!;
+        ResolveLastRule();
+
+        RuleCreationException.ThrowIfNull(condition);
+        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsMet);
+
+        int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
+        rulesToUseWhenConditionIsMet(); // Execute the action to populate rules for the 'when' block
+        ResolveLastRule(); // Resolve the last rule added from the action
+
+        // Create the ConditionalFlowValidatorRule and place it in the reserved slot
+        SetRuleToReservedSlot(
+            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+                _validatorName.AsSpan(), // Convert string to ReadOnlySpan<char>
+                _rules.Count - reservationIndex - 1, // This is the skip count if condition is false
+                false, // This is a 'when' block
+                condition,
+                callingFileLineNumber),
+            reservationIndex);
+
+        _conditionToChain = condition; // Store the condition for a potential OtherwiseUse call
+
+        return this; // Return 'this' to allow chaining to OtherwiseUse
     }
 
     public IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources> UseWhenAsync(
@@ -82,21 +112,97 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         Action rulesToUseWhenConditionIsMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        return null!;
+        ResolveLastRule();
+
+        RuleCreationException.ThrowIfNull(condition);
+        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsMet);
+
+        int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
+        rulesToUseWhenConditionIsMet(); // Execute the action to populate rules for the 'when' block
+        ResolveLastRule(); // Resolve the last rule added from the action
+
+        // Create the ConditionalFlowValidatorRule and place it in the reserved slot
+        SetRuleToReservedSlot(
+            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+                _validatorName.AsSpan(), // Convert string to ReadOnlySpan<char>
+                _rules.Count - reservationIndex - 1, // This is the skip count if condition is false
+                false, // This is a 'when' block
+                condition, // Pass the AsyncValidationCondition
+                callingFileLineNumber),
+            reservationIndex);
+
+        _conditionToChain = condition; // Store the condition for a potential OtherwiseUseAsync call
+
+        return this; // Return 'this' to allow chaining to OtherwiseUseAsync
     }
 
     public void OtherwiseUse(
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        throw new NotImplementedException();
+        ResolveLastRule(); // Resolve any rule immediately preceding OtherwiseUse
+
+        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
+
+        // Ensure a UseWhen was called previously and the condition is synchronous
+        if (_conditionToChain is not ValidationCondition<T, TExternalResources> syncCondition)
+        {
+            throw new ValidationAssistantInternalException("OtherwiseUse must follow a synchronous UseWhen call.");
+        }
+
+        int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
+
+        rulesToUseWhenConditionIsNotMet(); // Execute the action to populate rules for the 'otherwise' block
+        ResolveLastRule(); // Resolve the last rule added from the action
+
+        // Create and place the 'Otherwise' ConditionalFlowValidatorRule in the reserved slot.
+        // This rule will be executed if the 'when' condition was false.
+        SetRuleToReservedSlot(
+            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+                _validatorName.AsSpan(),
+                _rules.Count - reservationIndex - 1, // This is the skip count if condition is true
+                true, // This is an 'otherwise' block
+                syncCondition, // Use the original synchronous condition
+                callingFileLineNumber),
+            reservationIndex); // Place it at the start of the 'otherwise' block
+
+        _conditionToChain = null; // Clear the chained condition as the block is complete
     }
 
     public void OtherwiseUseAsync(
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        throw new NotImplementedException();
+        ResolveLastRule(); // Resolve any rule immediately preceding OtherwiseUseAsync
+
+        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
+
+        // Ensure a UseWhenAsync was called previously and the condition is asynchronous
+        if (_conditionToChain is not AsyncValidationCondition<T, TExternalResources> asyncCondition)
+        {
+            throw new ValidationAssistantInternalException("OtherwiseUseAsync must follow an asynchronous UseWhenAsync call.");
+        }
+
+        int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
+
+        rulesToUseWhenConditionIsNotMet(); // Execute the action to populate rules for the 'otherwise' block
+        ResolveLastRule(); // Resolve any rules added within the action
+
+        // Calculate the number of rules added within the 'otherwise' block
+        int rulesAddedInOtherwiseBlock = _rules.Count - reservationIndex - 1;
+
+        // Create and place the 'Otherwise' ConditionalFlowValidatorRule in the reserved slot.
+        // This rule will be executed if the 'when' condition was false.
+        SetRuleToReservedSlot(
+            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+                _validatorName.AsSpan(),
+                rulesAddedInOtherwiseBlock, // This is the skip count if 'otherwise' condition is true (meaning 'when' was true)
+                true, // This is an 'otherwise' block
+                asyncCondition, // Use the original asynchronous condition
+                callingFileLineNumber),
+            reservationIndex); // Place it at the start of the 'otherwise' block
+
+        _conditionToChain = null; // Clear the chained condition as the block is complete
     }
 
     /// <summary>
@@ -111,14 +217,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     /// </summary>
     public ComponentFailureStrategy RuleComponentsFailureStrategy { get; set; }
 
-    /// <summary>
-    /// Defines a synchronous pre-validation rule that checks a predicate against the main validation instance.
-    /// If the predicate returns <see langword="false"/>, a pre-validation failure is recorded.
-    /// </summary>
-    /// <param name="predicate">The synchronous predicate function to execute against the main instance.</param>
-    /// <param name="explanationMessage">An optional explanation message for the failure. If null, a default message is used.</param>
-    /// <param name="callingFileLineNumber">The line number in the source file where this method was called, used for debugging and reporting.</param>
-    /// <exception cref="RuleCreationException">Thrown if the <paramref name="predicate"/> is <see langword="null"/>.</exception>
     public void Ensure(
         PreValidationPredicate<T> predicate,
         string? explanationMessage = null,
@@ -131,14 +229,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
-    /// <summary>
-    /// Defines an asynchronous pre-validation rule that checks a predicate against the main validation instance.
-    /// If the predicate returns <see langword="false"/>, a pre-validation failure is recorded.
-    /// </summary>
-    /// <param name="predicate">The asynchronous predicate function to execute against the main instance.</param>
-    /// <param name="explanationMessage">An optional explanation message for the failure. If null, a default message is used.</param>
-    /// <param name="callingFileLineNumber">The line number in the source file where this method was called, used for debugging and reporting.</param>
-    /// <exception cref="RuleCreationException">Thrown if the <paramref name="predicate"/> is <see langword="null"/>.</exception>
     public void EnsureAsync(
         AsyncPreValidationPredicate<T> predicate,
         string? explanationMessage = null,
@@ -151,14 +241,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
-    /// <summary>
-    /// Defines a synchronous pre-validation rule that checks a predicate against the external resources.
-    /// If the predicate returns <see langword="false"/>, a pre-validation failure is recorded.
-    /// </summary>
-    /// <param name="predicate">The synchronous predicate function to execute against the external resources.</param>
-    /// <param name="explanationMessage">An optional explanation message for the failure. If null, a default message is used.</param>
-    /// <param name="callingFileLineNumber">The line number in the source file where this method was called, used for debugging and reporting.</param>
-    /// <exception cref="RuleCreationException">Thrown if the <paramref name="predicate"/> is <see langword="null"/>.</exception>
     public void EnsureResources(
         PreValidationPredicate<TExternalResources> predicate,
         string? explanationMessage = null,
@@ -171,14 +253,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
-    /// <summary>
-    /// Defines an asynchronous pre-validation rule that checks a predicate against the external resources.
-    /// If the predicate returns <see langword="false"/>, a pre-validation failure is recorded.
-    /// </summary>
-    /// <param name="predicate">The asynchronous predicate function to execute against the external resources.</param>
-    /// <param name="explanationMessage">An optional explanation message for the failure. If null, a default message is used.</param>
-    /// <param name="callingFileLineNumber">The line number in the source file where this method was called, used for debugging and reporting.</param>
-    /// <exception cref="RuleCreationException">Thrown if the <paramref name="predicate"/> is <see langword="null"/>.</exception>
     public void EnsureResourcesAsync(
         AsyncPreValidationPredicate<TExternalResources> predicate,
         string? explanationMessage = null,
@@ -200,6 +274,18 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     internal abstract ValidatorCore CreateValidatorCore();
 
     /// <summary>
+    /// Reserves a slot in the main rules list for a rule that will be placed later (e.g., a conditional flow rule).
+    /// This prevents issues with index shifts when rules are added dynamically within fluent chains.
+    /// </summary>
+    /// <returns>The index of the reserved slot.</returns>
+    protected virtual int ReserveSlot()
+    {
+        int reservationIndex = _rules.Count;
+        _rules.Add(default!); // Add a default/null placeholder
+        return reservationIndex;
+    }
+
+    /// <summary>
     /// Resolves the last rule that was being built via the fluent API and adds it
     /// to the internal list of validation rules. This method is typically called
     /// implicitly by the fluent API whenever a new rule definition begins,
@@ -207,6 +293,8 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     /// </summary>
     protected virtual void ResolveLastRule()
     {
+        // Clear the chained condition when a new rule is resolved, as it marks the end of a conditional block chain.
+        _conditionToChain = null;
         if (_ruleToBeAdded is not null)
         {
             // Capture the builder instance and null out the field to prepare for the next rule.
@@ -215,6 +303,24 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
 
             // Build the concrete ValidatorRule from the IBuildableRule and add it to the list.
             _rules.Add(builder.Build());
+        }
+    }
+
+    /// <summary>
+    /// Sets a compiled validator rule into a previously reserved slot in the main rules list,
+    /// or adds it to the end if no reservation index is provided.
+    /// </summary>
+    /// <param name="rule">The compiled validator rule to place.</param>
+    /// <param name="reservationIndex">Optional. The index of the reserved slot. If null, the rule is added to the end.</param>
+    protected virtual void SetRuleToReservedSlot(IValidatorRule<T, TExternalResources, TContext> rule, int? reservationIndex = null)
+    {
+        if (reservationIndex is not null)
+        {
+            _rules[reservationIndex.Value] = rule;
+        }
+        else
+        {
+            _rules.Add(rule);
         }
     }
 }

@@ -279,7 +279,8 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     internal void AddLogicalRuleFailure(LogicalRuleFailureInfo<T, TExternalResources> failureInfo)
     {
         // Create a new LogicalRuleFailure based on the provided info and its explanation
-        _currentRuleFailure = new LogicalRuleFailure(failureInfo, failureInfo.ExplanationFactory(this, failureInfo.RulesToSkip));
+        _currentRuleFailure = new LogicalRuleFailure(failureInfo, failureInfo.ExplanationFactory(this));
+        _currentRuleFailureInfo = failureInfo;
         Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
     }
 

@@ -5,7 +5,7 @@ internal sealed class LogicalRuleFailureInfo<T, TExternalResources> :
 {
     public LogicalRuleFailureInfo(
         int rulesToSkip,
-        Func<ValidatorRunCtx<T, TExternalResources>, int, string> explanationFactory,
+        Func<ValidatorRunCtx<T, TExternalResources>, string> explanationFactory,
         ReadOnlySpan<char> validatorName,
         ReadOnlySpan<char> ruleName,
         int declaredOnLine,
@@ -15,5 +15,5 @@ internal sealed class LogicalRuleFailureInfo<T, TExternalResources> :
         ExplanationFactory = explanationFactory;
     }
 
-    public Func<ValidatorRunCtx<T, TExternalResources>, int, string> ExplanationFactory { get; }
+    public Func<ValidatorRunCtx<T, TExternalResources>, string> ExplanationFactory { get; }
 }

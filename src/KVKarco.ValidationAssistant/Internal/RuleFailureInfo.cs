@@ -35,7 +35,7 @@ internal abstract class RuleFailureInfo
 
     public static LogicalRuleFailureInfo<T, TExternalResources> ForLogicalRule<T, TExternalResources>(
         int rulesToSkip,
-        Func<ValidatorRunCtx<T, TExternalResources>, int, string> explanationFactory,
+        Func<ValidatorRunCtx<T, TExternalResources>, string> explanationFactory,
         ReadOnlySpan<char> validatorName,
         ReadOnlySpan<char> ruleName,
         int declaredOnLine,

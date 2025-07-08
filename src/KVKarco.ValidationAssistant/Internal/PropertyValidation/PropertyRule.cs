@@ -45,7 +45,7 @@ internal abstract class PropertyRule<T, TExternalResources, TProperty, TContext>
         // It uses a global default explanation factory if no specific one is provided.
         Info = new PropertyRuleFailureInfo<T, TExternalResources, TProperty>(
             (context, _) => ValidatorsConfig.GlobalDefaults.Messages.PropertyValueMissingExplanation(context),
-            validatorName, RuleName, declaredOnLine, RuleFailureStrategy.Continue);
+            validatorName, RuleName, declaredOnLine, strategy);
         _ruleComponents = [.. ruleComponents]; // Converts the list of components to an immutable array.
     }
 

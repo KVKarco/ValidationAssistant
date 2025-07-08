@@ -174,6 +174,29 @@ public class DefaultMessages
         throw new ValidationRunException($"{context.Culture} is not supported.");
     }
 
+    /// <summary>
+    /// Provides a default explanation message for when a conditional flow block is skipped during validation.
+    /// This message is used by <see cref="Internal.Rules.ConditionalFlowValidatorRule{T, TExternalResources, TContext}"/>
+    /// when its condition dictates that a block of rules should be bypassed.
+    /// </summary>
+    /// <typeparam name="T">The type of the main instance being validated.</typeparam>
+    /// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
+    /// <param name="context">The message context, providing access to culture and other relevant information.</param>
+    /// <param name="rulesSkipped">The number of rules that were skipped due to the conditional flow.</param>
+    /// <returns>A localized string explaining the skip. Currently supports "en-US".</returns>
+    /// <exception cref="ValidationRunException">Thrown if the specified culture is not supported.</exception>
+    public virtual string ConditionalFlowBlockSkipExplanation<T, TExternalResources>(
+        [NotNull] IMessageCtx<T, TExternalResources> context,
+        int rulesSkipped)
+    {
+        if (context.Culture == CultureInfo.GetCultureInfo("en-US"))
+        {
+            return $"The failure of the ConditionalFlowRule caused the validation run to skip {rulesSkipped} rules.";
+        }
+
+        throw new ValidationRunException($"{context.Culture} is not supported.");
+    }
+
 
     #endregion
 
