@@ -15,7 +15,7 @@ internal sealed class PropertyKey
     /// This is typically used when no specific property is being referenced,
     /// such as for root-level validation or initialization.
     /// </summary>
-    public static readonly PropertyKey Empty = new(null!, null!, false);
+    public static readonly PropertyKey Empty = new(null!, string.Empty, false);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyKey"/> class.
