@@ -26,25 +26,19 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     private readonly IAsyncValidationRule<T, TExternalResources, TProperty>? _asyncRule;
 
     /// <summary>
-    /// Contains information about how a validation failure should be handled and the factory
-    /// for generating custom failure messages for this specific component.
-    /// </summary>
-    private readonly ComponentFailureInfo<T, TExternalResources, TProperty> _info;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="PropertyRuleComponent{T, TExternalResources, TProperty}"/> class
     /// for a synchronous validation rule.
     /// </summary>
     /// <param name="rule">The synchronous validation rule to wrap. Must not be <see langword="null"/>.</param>
     /// <param name="info">The metadata describing how to handle failures for this component.
-    /// This will be stored in the internal <see cref="_info"/> field.</param>
+    /// This will be stored in the internal <see cref="Info"/> field.</param>
     public PropertyRuleComponent(
         IValidationRule<T, TExternalResources, TProperty> rule,
         ComponentFailureInfo<T, TExternalResources, TProperty> info)
     {
         _rule = rule;
         _asyncRule = null; // Explicitly set to null to indicate a synchronous rule.
-        _info = info;
+        Info = info;
     }
 
     /// <summary>
@@ -53,15 +47,21 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     /// </summary>
     /// <param name="asyncRule">The asynchronous validation rule to wrap. Must not be <see langword="null"/>.</param>
     /// <param name="info">The metadata describing how to handle failures for this component.
-    /// This will be stored in the internal <see cref="_info"/> field.</param>
+    /// This will be stored in the internal <see cref="Info"/> field.</param>
     public PropertyRuleComponent(
         IAsyncValidationRule<T, TExternalResources, TProperty> asyncRule,
         ComponentFailureInfo<T, TExternalResources, TProperty> info)
     {
         _rule = null; // Explicitly set to null to indicate an asynchronous rule.
         _asyncRule = asyncRule;
-        _info = info;
+        Info = info;
     }
+
+    /// <summary>
+    /// Contains information about how a validation failure should be handled and the factory
+    /// for generating custom failure messages for this specific component.
+    /// </summary>
+    public ComponentFailureInfo<T, TExternalResources, TProperty> Info { get; }
 
     /// <summary>
     /// Gets a value indicating whether the wrapped validation rule is synchronous.
@@ -95,7 +95,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
         if (!_rule!.IsValid(context, property.Value))
         {
             // If validation fails, add a failure to the context with the component's info.
-            context.AddPropertyRuleComponentFailure(property, _info);
+            context.AddPropertyRuleComponentFailure(property, Info);
         }
     }
 
@@ -117,7 +117,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
         if (!isValid)
         {
             // If validation fails, add a failure to the context with the component's info.
-            context.AddPropertyRuleComponentFailure(property, _info);
+            context.AddPropertyRuleComponentFailure(property, Info);
         }
     }
 }
