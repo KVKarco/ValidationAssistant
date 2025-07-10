@@ -39,16 +39,34 @@ public interface IValidationDefinitionBuilder<T, TExternalResources> :
     /// </remarks>
     /// <example>
     /// <code>
-    /// UseFor(x => x.Name)
+    /// builder.UseFor(x => x.Name)
     ///    .NotNullOrEmpty()
     ///    .Length(1, 100);
     /// </code>
     /// </example>
-    /// <exception cref="RuleCreationException">
+    /// <exception cref="Exceptions.RuleCreationException">
     /// Thrown if the <paramref name="propertySelector"/> is <see langword="null"/> or if it represents an invalid
     /// property selection (e.g., not a member access expression for a property or field).
+    /// </exception>
+    /// <exception cref="Exceptions.ValidationAssistantInternalException">
+    /// Thrown if there is internal bug.
     /// </exception>
     IInitialPropertyRuleBuilder<T, TExternalResources, TProperty> UseFor<TProperty>(
         Expression<Func<T, TProperty>> propertySelector,
         [CallerLineNumber] int callingFileLineNumber = 0);
+
+    /// <summary>
+    /// Sets the default behavior when a validator-level rule encounters a failure.
+    /// This strategy can be overridden on every rule separately.
+    /// It does not influence conditional flow rules.
+    /// </summary>
+    /// <param name="failureStrategy">The <see cref="RuleFailureStrategy"/> to apply by default.</param>
+    void DefaultRuleFailureStrategy(RuleFailureStrategy failureStrategy);
+
+    /// <summary>
+    /// Sets the default behavior when a part of a validator-level rule fails, primarily for property-level rules.
+    /// This strategy does not influence conditional flow components like snapshots or continue-when components.
+    /// </summary>
+    /// <param name="failureStrategy">The <see cref="ComponentFailureStrategy"/> to apply by default.</param>
+    void DefaultComponentFailureStrategy(ComponentFailureStrategy failureStrategy);
 }

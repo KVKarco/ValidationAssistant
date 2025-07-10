@@ -24,23 +24,26 @@ internal static class ExpressionFactory
 
     /// <summary>
     /// Analyzes a lambda expression representing a property selection and extracts
-    /// the <see cref="MemberInfo"/> of the deepest (last) member in the chain,
+    /// the <see cref="MemberInfo"/> of the *first* (root) member in the chain,
     /// along with the total count of members in the access path. This is useful
-    /// for identifying the target property and understanding the depth of the expression.
+    /// for identifying the starting point of the property access and its overall depth.
     /// </summary>
     /// <param name="lambdaExpression">The lambda expression to analyze, e.g., <c>x => x.Prop1.Prop2</c>.</param>
     /// <returns>
     /// A tuple containing:
     /// <list type="bullet">
-    ///     <item><term><c>info</c></term><description>The <see cref="MemberInfo"/> of the last property/field in the chain.</description></item>
-    ///     <item><term><c>count</c></term><description>The total number of members in the property access chain.</description></item>
+    ///      <item><term><c>info</c></term><description>The <see cref="MemberInfo"/> of the first property/field in the chain (e.g., 'Prop1' for 'x.Prop1.Prop2').</description></item>
+    ///      <item><term><c>count</c></term><description>The total number of members in the property access chain.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="RuleCreationException">
     /// Thrown if any part of the expression body is not a valid member or property access expression.
     /// </exception>
-    public static (MemberInfo info, int count) GetLastMemberAndMembersCount(LambdaExpression lambdaExpression)
+    public static (MemberInfo info, int count) GetFirstMemberInChainAndCount(LambdaExpression lambdaExpression)
     {
+        // Validate the property selector expression.
+        RuleCreationException.ThrowIfInvalidSelector(lambdaExpression);
+
         MemberExpression? member = lambdaExpression.Body as MemberExpression;
         MemberInfo memberInfo = null!; // Will be assigned in the loop
         int count = 0;
@@ -81,7 +84,7 @@ internal static class ExpressionFactory
     /// Thrown if the <paramref name="propertySelector"/> is not a valid member access expression
     /// or if any intermediate expression is invalid.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="ValidationAssistantInternalException">
     /// Thrown if the required constructor for <see cref="Undefined{TProperty}"/> cannot be found via reflection.
     /// </exception>
     public static PropertyCtx<T, TProperty> CreatePropertyCtx<T, TProperty>(
@@ -89,6 +92,9 @@ internal static class ExpressionFactory
         bool removeStartName = false,
         bool isForCollection = false)
     {
+        // Validate the property selector expression.
+        RuleCreationException.ThrowIfInvalidSelector(propertySelector);
+
         // Parameter expression to be used in the compiled lambda (e.g., 'x' in 'x => x.Prop').
         ParameterExpression parameterExpression = propertySelector.Parameters[0];
 
@@ -143,7 +149,7 @@ internal static class ExpressionFactory
 
         // Get the constructor of the Undefined<TProperty> class that takes (TProperty value, bool hasValue, bool isNull).
         ConstructorInfo constructorInfo = typeof(Undefined<TProperty>).GetConstructor(bf, [typeof(TProperty), typeof(bool), typeof(bool)])
-            ?? throw new InvalidOperationException($"Undefined<{typeof(TProperty).Name}> constructor with (TProperty, bool, bool) parameters not found.");
+            ?? throw new ValidationAssistantInternalException($"Undefined<{typeof(TProperty).Name}> constructor with (TProperty, bool, bool) parameters not found.");
 
         // Create an expression for the default constructor of Undefined<TProperty>,
         // which signifies a missing/undefined value.

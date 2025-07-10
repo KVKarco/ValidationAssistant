@@ -1,5 +1,4 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.Internal.Utilities;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -22,9 +21,6 @@ internal sealed class ExpressValidatorCoreBuilder<T, TExternalResources> :
     {
         // Resolve the previously defined rule (if any) before starting a new one.
         ResolveLastRule();
-
-        // Validate the property selector expression.
-        RuleCreationException.ThrowIfInvalidSelector(propertySelector);
 
         // Create a new ExpressValidatorPropertyRuleBuilder instance.
         // This builder will be used to fluently define the specific validation components for this property.

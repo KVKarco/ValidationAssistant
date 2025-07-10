@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36203.30 d17.14
+VisualStudioVersion = 17.14.36203.30
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KVKarco.ValidationAssistant", "src\KVKarco.ValidationAssistant\KVKarco.ValidationAssistant.csproj", "{0B0B1FBD-8774-432A-8B17-28FD880F3FFC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A6C91A37-5AF2-49B1-841A-5D00E5037DC6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KVKarco.ValidationAssistant.UnitTests", "tests\KVKarco.ValidationAssistant.UnitTests\KVKarco.ValidationAssistant.UnitTests.csproj", "{6072E3E9-11FD-4217-8AAF-774FE5CA78FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KVKarco.ValidationAssistant.Tests.Models", "tests\KVKarco.ValidationAssistant.Tests.Models\KVKarco.ValidationAssistant.Tests.Models.csproj", "{BDEA8567-50BD-48DA-A321-9E342600E72E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,12 +23,22 @@ Global
 		{0B0B1FBD-8774-432A-8B17-28FD880F3FFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0B0B1FBD-8774-432A-8B17-28FD880F3FFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0B0B1FBD-8774-432A-8B17-28FD880F3FFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6072E3E9-11FD-4217-8AAF-774FE5CA78FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6072E3E9-11FD-4217-8AAF-774FE5CA78FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6072E3E9-11FD-4217-8AAF-774FE5CA78FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6072E3E9-11FD-4217-8AAF-774FE5CA78FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDEA8567-50BD-48DA-A321-9E342600E72E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDEA8567-50BD-48DA-A321-9E342600E72E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDEA8567-50BD-48DA-A321-9E342600E72E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDEA8567-50BD-48DA-A321-9E342600E72E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0B0B1FBD-8774-432A-8B17-28FD880F3FFC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{6072E3E9-11FD-4217-8AAF-774FE5CA78FE} = {A6C91A37-5AF2-49B1-841A-5D00E5037DC6}
+		{BDEA8567-50BD-48DA-A321-9E342600E72E} = {A6C91A37-5AF2-49B1-841A-5D00E5037DC6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {41CFB321-B5B3-41EE-87C7-FDE8C53ACA72}

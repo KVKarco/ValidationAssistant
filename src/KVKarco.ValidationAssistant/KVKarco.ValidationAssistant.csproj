@@ -12,4 +12,8 @@
   	<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="KVKarco.ValidationAssistant.UnitTests" />
+	</ItemGroup>
+
 </Project>

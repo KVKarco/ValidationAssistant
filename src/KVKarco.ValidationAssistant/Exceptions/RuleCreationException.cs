@@ -112,7 +112,7 @@ public sealed class RuleCreationException : ValidationAssistantException
         // Ensure the expression is a MemberExpression (property or field access)
         if (expressionToValidate is not MemberExpression memberExpression)
         {
-            throw new RuleCreationException($"Only selecting properties or fields is allowed in '{argumentName}'.");
+            throw new RuleCreationException("Only selecting properties or fields is allowed.");
         }
 
         // Disallow selecting `.Value` from a Nullable<T> if it's directly from the root parameter
@@ -176,7 +176,7 @@ public sealed class RuleCreationException : ValidationAssistantException
         // either the root parameter (e.g., `x.Prop`) or another member expression (e.g., `x.Obj.Prop`).
         if (!(argument.Expression is ParameterExpression || argument.Expression is MemberExpression))
         {
-            throw new RuleCreationException($"Only selecting properties or fields is allowed in '{argumentName}'.");
+            throw new RuleCreationException("Only selecting properties or fields is allowed in selectors.");
         }
     }
 

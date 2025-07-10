@@ -82,6 +82,15 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
 
     public ComponentFailureStrategy RuleComponentsFailureStrategy { get; set; }
 
+    /// <inheritdoc/>
+    public void DefaultRuleFailureStrategy(RuleFailureStrategy ruleFailureStrategy)
+        => RuleFailureStrategy = ruleFailureStrategy;
+
+    /// <inheritdoc/>
+    public void DefaultComponentFailureStrategy(ComponentFailureStrategy componentFailureStrategy)
+        => RuleComponentsFailureStrategy = componentFailureStrategy;
+
+    /// <inheritdoc/>
     public void Ensure(
         PreValidationPredicate<T> predicate,
         string? explanationMessage = null,
@@ -94,6 +103,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
+    /// <inheritdoc/>
     public void EnsureAsync(
         AsyncPreValidationPredicate<T> predicate,
         string? explanationMessage = null,
@@ -106,6 +116,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
+    /// <inheritdoc/>
     public void EnsureResources(
         PreValidationPredicate<TExternalResources> predicate,
         string? explanationMessage = null,
@@ -118,6 +129,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
+    /// <inheritdoc/>
     public void EnsureResourcesAsync(
         AsyncPreValidationPredicate<TExternalResources> predicate,
         string? explanationMessage = null,
@@ -130,6 +142,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _preValidationRules.Add(rule);
     }
 
+    /// <inheritdoc/>
     public IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources> UseWhen(
         ValidationCondition<T, TExternalResources> condition,
         Action rulesToUseWhenConditionIsMet,
@@ -159,6 +172,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         return this; // Return 'this' to allow chaining to OtherwiseUse
     }
 
+    /// <inheritdoc/>
     public IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources> UseWhenAsync(
         AsyncValidationCondition<T, TExternalResources> condition,
         Action rulesToUseWhenConditionIsMet,
@@ -188,6 +202,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         return this; // Return 'this' to allow chaining to OtherwiseUseAsync
     }
 
+    /// <inheritdoc/>
     public void OtherwiseUse(
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
@@ -221,6 +236,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _conditionToChain = null; // Clear the chained condition as the block is complete
     }
 
+    /// <inheritdoc/>
     public void OtherwiseUseAsync(
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
