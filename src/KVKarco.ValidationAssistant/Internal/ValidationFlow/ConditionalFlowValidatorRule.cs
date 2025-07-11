@@ -18,11 +18,6 @@ internal sealed class ConditionalFlowValidatorRule<T, TExternalResources, TConte
     ValidatorRule<T, TExternalResources, TContext>
     where TContext : ValidatorRunCtx<T, TExternalResources>
 {
-    private readonly int _rulesToSkip;
-    private readonly bool _isOtherwise;
-    private readonly ValidationCondition<T, TExternalResources>? _condition;
-    private readonly AsyncValidationCondition<T, TExternalResources>? _asyncCondition;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ConditionalFlowValidatorRule{T, TExternalResources, TContext}"/>
     /// for a synchronous condition.
@@ -41,10 +36,10 @@ internal sealed class ConditionalFlowValidatorRule<T, TExternalResources, TConte
         int declaredOnLine)
         : base(true) // CanRunSynchronously is true for synchronous condition
     {
-        _rulesToSkip = rulesToSkip;
-        _condition = condition;
-        _isOtherwise = isOtherwise;
-        _asyncCondition = null; // Ensure async condition is null for synchronous constructor
+        RulesToSkip = rulesToSkip;
+        Condition = condition;
+        IsOtherwise = isOtherwise;
+        AsyncCondition = null; // Ensure async condition is null for synchronous constructor
         Info = new LogicalRuleFailureInfo<T, TExternalResources>(
             rulesToSkip, // This 'rulesToSkip' is passed to the LogicalRuleFailureInfo
             (ctx) => ValidatorsConfig.GlobalDefaults.Messages.ConditionalFlowBlockSkipExplanation(ctx, rulesToSkip), // Use the passed rulesToSkip
@@ -69,15 +64,35 @@ internal sealed class ConditionalFlowValidatorRule<T, TExternalResources, TConte
         int declaredOnLine)
         : base(false) // CanRunSynchronously is false for asynchronous condition
     {
-        _rulesToSkip = rulesToSkip;
-        _condition = null; // Ensure synchronous condition is null for asynchronous constructor
-        _isOtherwise = isOtherwise;
-        _asyncCondition = asyncCondition;
+        RulesToSkip = rulesToSkip;
+        Condition = null; // Ensure synchronous condition is null for asynchronous constructor
+        IsOtherwise = isOtherwise;
+        AsyncCondition = asyncCondition;
         Info = new LogicalRuleFailureInfo<T, TExternalResources>(
             rulesToSkip, // This 'rulesToSkip' is passed to the LogicalRuleFailureInfo
             (ctx) => ValidatorsConfig.GlobalDefaults.Messages.ConditionalFlowBlockSkipExplanation(ctx, rulesToSkip), // Use the passed rulesToSkip
             validatorName, RuleName, declaredOnLine, RuleFailureStrategy.Continue); // Conditional flow rules do not stop the overall validation flow, they just redirect it.
     }
+
+    /// <summary>
+    /// The synchronous condition predicate that determines whether rules should be skipped.
+    /// </summary>
+    public ValidationCondition<T, TExternalResources>? Condition { get; }
+
+    /// <summary>
+    /// The asynchronous condition predicate that determines whether rules should be skipped.
+    /// </summary>
+    public AsyncValidationCondition<T, TExternalResources>? AsyncCondition { get; }
+
+    /// <summary>
+    /// How many rules needs to be skipped if this conditional rule fails.
+    /// </summary>
+    public int RulesToSkip { get; }
+
+    /// <summary>
+    /// Flag if is When or Otherwise rule.
+    /// </summary>
+    public bool IsOtherwise { get; }
 
     /// <summary>
     /// Gets the logical rule failure information for this conditional flow rule.
@@ -89,9 +104,9 @@ internal sealed class ConditionalFlowValidatorRule<T, TExternalResources, TConte
     /// Gets the descriptive name of this conditional flow rule, indicating whether it's a 'when' or 'otherwise' rule,
     /// and if it's synchronous or asynchronous.
     /// </summary>
-    public sealed override ReadOnlySpan<char> RuleName => _condition is not null
-        ? (_isOtherwise ? DefaultNaming.ConditionOtherwiseRule : DefaultNaming.ConditionWhenRule)
-        : (_isOtherwise ? DefaultNaming.ConditionOtherwiseAsyncRule : DefaultNaming.ConditionWhenAsyncRule);
+    public sealed override ReadOnlySpan<char> RuleName => Condition is not null
+        ? (IsOtherwise ? DefaultNaming.ConditionOtherwiseRule : DefaultNaming.ConditionWhenRule)
+        : (IsOtherwise ? DefaultNaming.ConditionOtherwiseAsyncRule : DefaultNaming.ConditionWhenAsyncRule);
 
     /// <summary>
     /// Synchronously executes the conditional flow logic.
@@ -104,11 +119,11 @@ internal sealed class ConditionalFlowValidatorRule<T, TExternalResources, TConte
     public sealed override void Validate(TContext context)
     {
         ValidationRunException.ThrowIfAsyncRuleIsCalledSynchronously(CanRunSynchronously, RuleName);
-        bool isValidCondition = _condition!(context); // Execute the synchronous condition
+        bool isValidCondition = Condition!(context); // Execute the synchronous condition
 
         // For an 'otherwise' block, we skip if the condition IS valid (meaning the 'when' block was executed).
         // For a 'when' block, we skip if the condition is NOT valid.
-        if (_isOtherwise)
+        if (IsOtherwise)
         {
             if (isValidCondition) // If 'otherwise' condition is true, it means the 'when' condition was also true, so skip 'otherwise' block.
             {
@@ -136,11 +151,11 @@ internal sealed class ConditionalFlowValidatorRule<T, TExternalResources, TConte
     {
         // Execute the condition, either synchronously or asynchronously based on CanRunSynchronously.
         bool isValidCondition = CanRunSynchronously
-            ? _condition!(context)
-            : await _asyncCondition!(context, ct).ConfigureAwait(false);
+            ? Condition!(context)
+            : await AsyncCondition!(context, ct).ConfigureAwait(false);
 
         // Logic for skipping based on _isOtherwise flag and condition result.
-        if (_isOtherwise)
+        if (IsOtherwise)
         {
             if (isValidCondition) // If 'otherwise' condition is true, it means the 'when' condition was also true, so skip 'otherwise' block.
             {

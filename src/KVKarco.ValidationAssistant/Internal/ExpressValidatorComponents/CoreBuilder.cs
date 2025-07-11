@@ -46,6 +46,6 @@ internal sealed class ExpressValidatorCoreBuilder<T, TExternalResources> :
         ResolveLastRule();
 
         // Create and return the ExpressValidatorCore using the collected pre-validation rules, main rules, and snapshots.
-        return ValidatorCore.ForExpressValidator(_validatorName, _snapShots, _preValidationRules, _rules);
+        return ValidatorCore.ForExpressValidator(_validatorName, _snapShots.Count == 0 ? null : _snapShots, _preValidationRules, _rules);
     }
 }

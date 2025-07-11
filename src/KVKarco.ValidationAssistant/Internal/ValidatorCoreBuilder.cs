@@ -69,8 +69,8 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     protected ValidatorCoreBuilder(string validatorName)
     {
         _validatorName = validatorName;
-        _snapShots = [];
         _preValidationRules = [];
+        _snapShots = []; // Initialize the snapshots list
         _rules = []; // Initialize the new _rules list
 
         // Initialize default failure strategies from global configuration.
@@ -207,8 +207,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        ResolveLastRule(); // Resolve any rule immediately preceding OtherwiseUse
-
         RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
 
         // Ensure a UseWhen was called previously and the condition is synchronous
@@ -241,8 +239,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        ResolveLastRule(); // Resolve any rule immediately preceding OtherwiseUseAsync
-
         RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
 
         // Ensure a UseWhenAsync was called previously and the condition is asynchronous

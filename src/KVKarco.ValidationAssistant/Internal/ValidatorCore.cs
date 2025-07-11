@@ -65,18 +65,6 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     where TContex : ValidatorRunCtx<T, TExternalResources>
 {
     /// <summary>
-    /// An immutable array containing the pre-validation <see cref="IPreValidationRule{T, TExternalResources}"/> instances.
-    /// These rules are executed first to ensure fundamental conditions are met before main validation.
-    /// </summary>
-    private readonly ImmutableArray<IPreValidationRule<T, TExternalResources>> _preValidationRules;
-
-    /// <summary>
-    /// An immutable array containing all the compiled main <see cref="IValidatorRule{T, TExternalResources, TContex}"/> instances
-    /// that constitute the primary validation logic for this core.
-    /// </summary>
-    private readonly ImmutableArray<IValidatorRule<T, TExternalResources, TContex>> _rules;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="ValidatorCore{T, TExternalResources, TContex}"/> class.
     /// </summary>
     /// <param name="validatorName">The descriptive name of the validator core.</param>
@@ -92,9 +80,21 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
         List<IValidatorRule<T, TExternalResources, TContex>> rules)
         : base(validatorName, !preValidationRules.Exists(x => !x.CanRunSynchronously) && !rules.Exists(x => !x.CanRunSynchronously), snapShots)
     {
-        _preValidationRules = [.. preValidationRules];
-        _rules = [.. rules]; // Convert list to immutable array for thread-safety and performance.
+        PreValidationRules = [.. preValidationRules];
+        ValidationRules = [.. rules]; // Convert list to immutable array for thread-safety and performance.
     }
+
+    /// <summary>
+    /// An immutable array containing the pre-validation <see cref="IPreValidationRule{T, TExternalResources}"/> instances.
+    /// These rules are executed first to ensure fundamental conditions are met before main validation.
+    /// </summary>
+    public ImmutableArray<IPreValidationRule<T, TExternalResources>> PreValidationRules { get; }
+
+    /// <summary>
+    /// An immutable array containing all the compiled main <see cref="IValidatorRule{T, TExternalResources, TContex}"/> instances
+    /// that constitute the primary validation logic for this core.
+    /// </summary>
+    public ImmutableArray<IValidatorRule<T, TExternalResources, TContex>> ValidationRules { get; }
 
     /// <summary>
     /// Synchronously executes all compiled pre-validation rules, and if they all pass
@@ -108,9 +108,9 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     {
         // --- Execute Pre-Validation Rules ---
         int preIndex = 0;
-        while (preIndex < _preValidationRules.Length)
+        while (preIndex < PreValidationRules.Length)
         {
-            _preValidationRules[preIndex].PreValidate(context);
+            PreValidationRules[preIndex].PreValidate(context);
 
             // If a pre-validation rule causes the validation to stop, immediately return to stop the entire process.
             if (context.ToStopValidation())
@@ -124,10 +124,10 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
         int mainIndex = 0;
 
         // --- Execute Main Validation Rules (only if pre-validation did not stop the process) ---
-        while (mainIndex < _rules.Length)
+        while (mainIndex < ValidationRules.Length)
         {
             // Execute the current main rule's synchronous validation logic.
-            _rules[mainIndex].Validate(context);
+            ValidationRules[mainIndex].Validate(context);
 
             // Check if the validation context indicates that the entire validation process should stop.
             if (context.ToStopValidation())
@@ -154,11 +154,11 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     {
         // --- Execute Pre-Validation Rules ---
         int preIndex = 0;
-        while (preIndex < _preValidationRules.Length)
+        while (preIndex < PreValidationRules.Length)
         {
             ct.ThrowIfCancellationRequested(); // Check for cancellation before executing each pre-validation rule.
 
-            await _preValidationRules[preIndex].PreValidateAsync(context, ct).ConfigureAwait(false);
+            await PreValidationRules[preIndex].PreValidateAsync(context, ct).ConfigureAwait(false);
 
             // If a pre-validation rule causes the validation to stop, immediately return to stop the entire process.
             if (context.ToStopValidation())
@@ -172,12 +172,12 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
         int mainIndex = 0;
 
         // --- Execute Main Validation Rules (only if pre-validation did not stop the process) ---
-        while (mainIndex < _rules.Length)
+        while (mainIndex < ValidationRules.Length)
         {
             ct.ThrowIfCancellationRequested(); // Check for cancellation before executing each main rule.
 
             // Execute the current main rule's asynchronous validation logic.
-            await _rules[mainIndex].ValidateAsync(context, ct).ConfigureAwait(false);
+            await ValidationRules[mainIndex].ValidateAsync(context, ct).ConfigureAwait(false);
 
             // Check if a main rule causes the validation to stop.
             if (context.ToStopValidation())
