@@ -209,7 +209,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// <returns><see langword="true"/> if the property rule should exit; otherwise, <see langword="false"/>.</returns>
     internal bool ToExitPropertyRule()
     {
-        return _currentValidationFailureInfo is not null
+        return Result.IsValidationRunForceStopped || _currentValidationFailureInfo is not null
                && (_currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop
                    || _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Exit);
     }

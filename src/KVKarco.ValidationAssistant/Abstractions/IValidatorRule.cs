@@ -3,53 +3,58 @@
 namespace KVKarco.ValidationAssistant.Abstractions;
 
 /// <summary>
-/// Defines the contract for an internal validator rule, specifying the core methods
-/// and properties required for any rule to be executed within the validation framework.
-/// This interface ensures a common API for both property-specific and other types of rules.
+/// Defines the contract for a validation rule that can be executed against a specific context.
+/// This interface is a core component in the validation process, supporting both synchronous
+/// and asynchronous validation flows for all types of validator rules.
 /// </summary>
-/// <typeparam name="T">The type of the main instance being validated.</typeparam>
-/// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
-/// <typeparam name="TContext">The specific type of <see cref="ValidatorRunCtx{T, TExternalResources}"/>
-/// used for the validation run, ensuring context-specific operations.</typeparam>
+/// <typeparam name="T">The type of the entity or object being validated by this rule.</typeparam>
+/// <typeparam name="TExternalResources">
+/// The type representing any external resources required during the validation process (e.g., database contexts, API clients).
+/// </typeparam>
+/// <typeparam name="TContext">
+/// The type of the validation run context, which encapsulates the entity being validated,
+/// external resources, and other validation-specific state. This context must derive from
+/// <see cref="ValidatorRunCtx{T, TExternalResources}"/>.
+/// </typeparam>
 internal interface IValidatorRule<T, TExternalResources, TContext>
     where TContext : ValidatorRunCtx<T, TExternalResources>
 {
     /// <summary>
-    /// Gets the failure information associated with this rule.
-    /// This property provides access to details like explanation factories and failure strategies
-    /// that are applicable if this rule determines a failure.
+    /// Gets information about the rule's potential failure, such as its error code or default message.
+    /// This metadata is used to provide consistent failure details if the rule's validation logic fails.
     /// </summary>
     RuleFailureInfo Info { get; }
 
     /// <summary>
-    /// Gets the unique or descriptive name of this validator rule.
-    /// This name can be used for logging, identification, or debugging purposes.
+    /// Gets the name of the validation rule.
+    /// This name is typically used for identification, logging, or reporting purposes but is not guaranteed to be unique.
+    /// Using <see cref="ReadOnlySpan{T}"/> for efficient string-like rule name handling.
     /// </summary>
     ReadOnlySpan<char> RuleName { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this validator rule can be executed synchronously.
-    /// If <see langword="false"/>, it implies that the rule relies on asynchronous operations
-    /// and should only be invoked via <see cref="ValidateAsync(TContext, CancellationToken)"/>.
+    /// Gets a value indicating whether this validation rule can be executed synchronously.
+    /// If <c>true</c>, the <see cref="Validate(TContext)"/> method can be safely called.
+    /// If <c>false</c>, only <see cref="ValidateAsync(TContext, CancellationToken)"/> should be used,
+    /// indicating that the rule might perform asynchronous operations (e.g., I/O).
     /// </summary>
     bool CanRunSynchronously { get; }
 
     /// <summary>
-    /// Synchronously executes this validator rule.
-    /// Implementations should validate their internal state or conditions using the provided <paramref name="context"/>.
-    /// If a failure occurs, the necessary information should be added to the <paramref name="context"/>.
-    /// This method should only be called if <see cref="CanRunSynchronously"/> is <see langword="true"/>.
+    /// Executes the validation logic synchronously against the provided context.
+    /// This method should only be invoked if <see cref="CanRunSynchronously"/> is <c>true</c>.
+    /// If <see cref="CanRunSynchronously"/> is <c>false</c>, calling this method will
+    /// result in the validation process ending with a single failure and an explanation.
     /// </summary>
-    /// <param name="context">The validation run context for the current operation.</param>
+    /// <param name="context">The validation run context containing the entity and external resources.</param>
     void Validate(TContext context);
 
     /// <summary>
-    /// Asynchronously executes this validator rule.
-    /// Implementations should validate their internal state or conditions using the provided <paramref name="context"/>.
-    /// If a failure occurs, the necessary information should be added to the <paramref name="context"/>.
+    /// Executes the validation logic asynchronously against the provided context.
+    /// This method is designed for rules that may involve I/O or other long-running, non-blocking tasks.
     /// </summary>
-    /// <param name="context">The validation run context for the current operation.</param>
+    /// <param name="context">The validation run context containing the entity and external resources.</param>
     /// <param name="ct">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous validation operation.</returns>
     ValueTask ValidateAsync(TContext context, CancellationToken ct);
 }
