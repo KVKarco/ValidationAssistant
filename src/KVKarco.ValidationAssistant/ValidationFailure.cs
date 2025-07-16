@@ -86,4 +86,11 @@ public readonly record struct ValidationFailure
         string message = $"The property '{runCtx.PropertyName}' at path '{runCtx.CorrectPropertyPath}' is missing or cannot be resolved.";
         return new(null!, message, FailureSeverity.Fatal);
     }
+
+    internal static ValidationFailure ForAsyncRuleCalledSynch(ValidatorRunCtx runCtx)
+    {
+        //TODO : add it to the global defaults messages
+        string message = $"Internal problem during the validation.";
+        return new(null!, message, FailureSeverity.Fatal);
+    }
 }

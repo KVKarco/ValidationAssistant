@@ -276,17 +276,6 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
     }
 
-    /// <summary>
-    /// Adds a validation failure associated with a specific property to the validation result.
-    /// This updates failure counters based on severity and manages the current rule failure context.
-    /// </summary>
-    /// <typeparam name="TProperty">The type of the property that failed validation.</typeparam>
-    /// <param name="property">The <see cref="Undefined{TProperty}"/> instance representing the property and its value.</param>
-    /// <param name="failureInfo">Information about the validation failure, including its message factory and strategy.</param>
-    /// <exception cref="ValidationAssistantInternalException">
-    /// Thrown if <see cref="_currentRuleFailureInfo"/> is not of the expected type or is null when adding a property validation failure.
-    /// This indicates an internal logic error.
-    /// </exception>
     internal void AddValidationRuleFailure<TProperty>(Undefined<TProperty> property, ValidationRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
     {
         // Only increment failure counts if the severity is not 'Info'.
@@ -321,61 +310,65 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         _currentRuleFailure.AddValidationFailure(ValidationFailure.ForPropertyComponent(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
     }
 
-    /// <summary>
-    /// Adds a pre-validation failure to the validation result.
-    /// This method is typically called by <see cref="IPreValidationRule{T, TExternalResources}.PreValidate"/>
-    /// or <see cref="IPreValidationRule{T, TExternalResources}.PreValidateAsync"/>.
-    /// </summary>
-    /// <param name="failureInfo">Information about the pre-validation rule failure, including its explanation factory.</param>
-    /// <param name="validationFailure">The specific <see cref="ValidationFailure"/> object representing the failure.</param>
     internal void AddPreValidationFailure([NotNull] PreValidationRuleFailureInfo<T, TExternalResources> failureInfo, [NotNull] ValidationFailure validationFailure)
     {
+        //TODO: change to ResultClear for prevalidation rules.
         _totalValidationFailures++;
-        // Create a new PreValidationRuleFailure based on the provided info and its explanation
         _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this));
         _currentRuleFailure.AddValidationFailure(validationFailure);
-        _currentValidationFailureInfo = validationFailure.Info; // Assuming ValidationFailure has an 'Info' property of type ComponentFailureInfo
-        Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
+        _currentValidationFailureInfo = validationFailure.Info;
+        Result.AddRuleFailure(_currentRuleFailure);
     }
 
-    /// <summary>
-    /// Adds a failure indicating that a property's value could not be resolved or was considered "missing"
-    /// during property rule execution. This typically occurs when a property in a chain is null,
-    /// preventing further evaluation of its components.
-    /// <para>
-    /// This method logs the "missing value" as a specific type of rule failure
-    /// but **does not** contribute to the overall <see cref="_totalValidationFailures"/> count.
-    /// It explains *why* subsequent property components were skipped for this property,
-    /// rather than indicating a validation failure that invalidates the overall result.
-    /// </para>
-    /// </summary>
-    /// <typeparam name="TProperty">The type of the property that was missing.</typeparam>
-    /// <param name="property">The <see cref="Undefined{TProperty}"/> instance representing the missing property's state.</param>
-    /// <param name="failureInfo">The <see cref="PropertyRuleFailureInfo{T, TExternalResources, TProperty}"/> associated with the property rule.
-    /// This information is used to construct the <see cref="PropertyRuleFailure"/>.</param>
-    internal void ForceStopWhenPropertyValueIsMissing<TProperty>(
-        Undefined<TProperty> property,
-        [NotNull] PropertyRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
+
+    internal void ForceStopPropertyValueIsMissing<TProperty>(Undefined<TProperty> property)
     {
-        // This is the first failure for this specific property rule, so create a new PropertyRuleFailure.
-        // It uses the explanation factory from the provided failureInfo to generate the message.
-        _currentRuleFailure = new PropertyRuleFailure<TProperty>(
+        //TODO : move string messages in config
+        if (_currentPropertyFailureInfoBackUp is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
+        {
+            _totalValidationFailures++;
+            _currentPropertyRuleFailures++;
+            _currentRuleFailure = new PropertyRuleFailure<TProperty>(
             property,
             "",
-            failureInfo,
-            "Property value cant be extracted validation is stopped with single failure ... if desire is for this property rule to be optional wrap the rule in UseWhen and check the parent for null or use ContinueWhen to check if the parent is null."); // Pass property.Value to the explanation factory even if Undefined, as it may be relevant.
+            info,
+            "Property value cant be extracted validation is stopped with single failure " +
+            "... if desire is for this property rule to be optional wrap the rule in UseWhen and check the parent for null or use ContinueWhen to check if the parent is null."); // Pass property.Value to the explanation factory even if Undefined, as it may be relevant.
 
-        Result.Clear(_currentRuleFailure); // Clear the result because this is fatal severity failure.
-        _currentRuleFailure.AddValidationFailure(
-            ValidationFailure.ForMissingPropertyValue(this));
-        // we need to add a validation failure to the current rule failure
-        // and some how stop the validation run.
+            Result.Clear(_currentRuleFailure);
+            _currentRuleFailure.AddValidationFailure(
+                ValidationFailure.ForMissingPropertyValue(this));
+        }
+        else
+        {
+            throw new ValidationAssistantInternalException("Debug how _currentPropertyFailureInfoBackUp is wrong type or null in ForceStopWhenPropertyValueIsMissing.");
+        }
+    }
 
-        // IMPORTANT: The _totalValidationFailures is NOT incremented here.
-        // As per the refined design, a "missing value" for an optional property
-        // should stop further component evaluation for that property (as handled by PropertyRule's HasValue),
-        // but it does not inherently mean the *overall* validation result is invalid,
-        // unless an explicit rule (e.g., .NotNull()) is later applied and fails.
+    internal void ForceStopAsyncValidationRuleCalledSynchronously<TProperty>(Undefined<TProperty> property, ValidationRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
+    {
+        //TODO : move string messages in config
+        if (_currentPropertyFailureInfoBackUp is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
+        {
+            _totalValidationFailures++;
+            _currentPropertyRuleFailures++;
+            _currentRuleFailure = new PropertyRuleFailure<TProperty>(
+            property,
+            "",
+            info,
+            $"""
+            Validation rule:
+            {failureInfo.Title} cant run synchronously.
+            """);
+
+            Result.Clear(_currentRuleFailure);
+            _currentRuleFailure.AddValidationFailure(
+                ValidationFailure.ForAsyncRuleCalledSynch(this));
+        }
+        else
+        {
+            throw new ValidationAssistantInternalException("Debug how _currentPropertyFailureInfoBackUp is wrong type or null in ForceStoValidationRuleCantRunSynchronously.");
+        }
     }
 
     /// <summary>
