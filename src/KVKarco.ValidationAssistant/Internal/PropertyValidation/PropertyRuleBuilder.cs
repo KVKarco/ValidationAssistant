@@ -1,6 +1,7 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.Internal.GenericValidationRules;
+using KVKarco.ValidationAssistant.ValidationRules;
 using System.Runtime.CompilerServices;
 
 namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;

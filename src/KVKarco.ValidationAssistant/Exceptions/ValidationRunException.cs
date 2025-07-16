@@ -30,7 +30,8 @@ public sealed class ValidationRunException : ValidationAssistantException
     [DoesNotReturn]
     private static void ThrowForSyncNull(ReadOnlySpan<char> ruleName)
     {
-        throw new ValidationRunException($"Asynchronously ValidationRule {ruleName} was called synchronously.");
+        throw new ValidationRunException($"Cannot run validation synchronously for rule '{ruleName}' because it is an asynchronous rule. " +
+            "Use the ValidateAsync method instead.");
     }
 }
 

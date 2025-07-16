@@ -1,5 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Exceptions;
+﻿using KVKarco.ValidationAssistant.Exceptions;
+using KVKarco.ValidationAssistant.ValidationRules;
 
 namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
@@ -194,7 +194,7 @@ internal sealed class PendingComponentState<T, TExternalResources, TProperty>
         }
 
         // Create ComponentFailureInfo with all collected options.
-        var info = new ComponentFailureInfo<T, TExternalResources, TProperty>(
+        var info = new ValidationRuleFailureInfo<T, TExternalResources, TProperty>(
             messageFactory,
             _rule is not null ? _rule.RuleName : _asyncRule!.RuleName,
             _declaredOnLine,

@@ -11,6 +11,8 @@ namespace KVKarco.ValidationAssistant;
 /// </summary>
 public sealed class ValidatorRunResult
 {
+    internal bool IsValidationRunForceStopped { get; private set; }
+
     /// <summary>
     /// A private list to store individual <see cref="RuleFailure"/> instances encountered during the validation run.
     /// This list is lazily initialized.
@@ -24,6 +26,7 @@ public sealed class ValidatorRunResult
     internal ValidatorRunResult(string producedFromValidator)
     {
         ProducedFromValidator = producedFromValidator;
+        IsValidationRunForceStopped = false;
     }
 
     /// <summary>
@@ -36,50 +39,22 @@ public sealed class ValidatorRunResult
     /// An instance is valid if there are no pre-validation failures and no rule failures
     /// that contain actual validation failures.
     /// </summary>
-    public bool IsValid => (!HasPreValidationFailure && (_failures is null || !_failures.Any(x => x.HasValidationFailures)));
+    public bool IsValid => _failures is null || !_failures.Any(x => x.HasValidationFailures);
 
-    /// <summary>
-    /// Gets or sets a value indicating whether a pre-validation failure has occurred.
-    /// </summary>
-    internal bool HasPreValidationFailure { get; set; }
-
-    /// <summary>
-    /// Gets or sets the message associated with a pre-validation failure, if one occurred.
-    /// This is typically the message from a <see cref="PreValidationException"/> (if exceptions were thrown)
-    /// or a direct message indicating a foundational issue.
-    /// </summary>
-    internal string? PreValidationFailure { get; set; }
-
+    internal void Clear(RuleFailure ruleFailure)
+    {
+        IsValidationRunForceStopped = true;
+        _failures?.Clear(); // Clear the list of failures if it exists
+        _failures ??= [];
+        _failures.Add(ruleFailure); // Add the provided rule failure to the list
+    }
     //TODO: create PreValidationFailureInfo
 
-    /// <summary>
-    /// Retrieves a dictionary of <c>ValidationFailure</c> instances, grouped by their associated property path.
-    /// If a pre-validation failure occurred, it is represented under an empty string key ("").
-    /// </summary>
-    /// <returns>
-    /// A dictionary where the keys are property paths (or an empty string for pre-validation failures)
-    /// and the values are collections of <c>ValidationFailure</c> objects.
-    /// </returns>
-    /// <exception cref="ValidationRunException">
-    /// Thrown if this method is called when the <see cref="ValidatorRunResult"/> indicates a successful validation (<see cref="IsValid"/> is <see langword="true"/>).
-    /// </exception>
     public IReadOnlyDictionary<string, IReadOnlyCollection<ValidationFailure>> GetFailures()
     {
         if (IsValid) // Changed from _failures is null to IsValid check based on typical usage
         {
             throw new ValidationRunException("Can't get failures from a successful validation run.");
-        }
-
-        if (HasPreValidationFailure)
-        {
-            // If there's a pre-validation failure, return it as a failure for the entire instance (empty path).
-            // Assuming ValidationFailure.New can create an entry with null RuleFailureInfo, Error severity, and a message.
-            return new Dictionary<string, IReadOnlyCollection<ValidationFailure>>()
-            {
-                // Note: The original code uses null! for the first parameter, implying a constructor or static method
-                // that allows a null RuleFailureInfo. Ensure this aligns with your ValidationFailure.New implementation.
-                {"", [ValidationFailure.ForPropertyComponent(null!, PreValidationFailure!)]}
-            };
         }
 
         // Filter for RuleFailures that actually contain validation failures and convert to a dictionary
@@ -103,15 +78,6 @@ public sealed class ValidatorRunResult
         if (IsValid) // Changed from _failures is null to IsValid check based on typical usage
         {
             throw new ValidationRunException("Can't get error messages from a successful validation run.");
-        }
-
-        if (HasPreValidationFailure)
-        {
-            // If there's a pre-validation failure, return its message for the entire instance (empty path).
-            return new Dictionary<string, IReadOnlyCollection<string>>
-            {
-                { "", [PreValidationFailure!] }
-            };
         }
 
         // Filter for RuleFailures that contain validation messages and convert to a dictionary of messages

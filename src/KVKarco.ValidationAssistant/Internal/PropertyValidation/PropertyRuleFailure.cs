@@ -40,14 +40,14 @@ internal sealed class PropertyRuleFailure<TProperty> : RuleFailure
     /// Returns <see langword="true"/> if there are collected validation failures; otherwise, <see langword="false"/>.
     /// </summary>
     public sealed override bool HasValidationFailures => _validationFailures is not null
-        && _validationFailures.Exists(x => x.Severity == FailureSeverity.Error || x.Severity == FailureSeverity.Warning);
+        && _validationFailures.Exists(x => x.Severity != FailureSeverity.Info);
 
     /// <summary>
     /// Gets a read-only collection of <see cref="ValidationFailure"/> instances that occurred for this property.
     /// Returns an empty collection if no validation failures have been added.
     /// </summary>
     public sealed override IReadOnlyCollection<ValidationFailure> ValidationFailures => _validationFailures is not null
-        ? _validationFailures.Where(x => x.Severity == FailureSeverity.Error || x.Severity == FailureSeverity.Warning).ToArray()
+        ? _validationFailures.Where(x => x.Severity != FailureSeverity.Info).ToArray()
         : [];
 
     /// <summary>

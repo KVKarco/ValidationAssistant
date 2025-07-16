@@ -1,7 +1,7 @@
 ﻿namespace KVKarco.ValidationAssistant.Internal.PreValidation;
 
 internal sealed class PreValidationFailureInfo :
-    ComponentFailureInfo
+    ValidationRuleFailureInfo
 {
     public PreValidationFailureInfo(int declaredOnLine)
         : base(declaredOnLine, FailureSeverity.Error, ComponentFailureStrategy.Stop)

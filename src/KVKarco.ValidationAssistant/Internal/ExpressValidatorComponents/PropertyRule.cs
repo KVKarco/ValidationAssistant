@@ -94,7 +94,7 @@ internal sealed class ExpressValidatorPropertyRule<T, TExternalResources, TPrope
         // If the property is not defined (e.g., a null in a property chain was encountered),
         // add a specific failure indicating a missing value for the property rule itself,
         // and return false to stop further component execution for this property.
-        context.AddPropertyRuleMissingValueFailure(property, Info);
+        context.ForceStopWhenPropertyValueIsMissing(property, Info);
 
         return false;
     }

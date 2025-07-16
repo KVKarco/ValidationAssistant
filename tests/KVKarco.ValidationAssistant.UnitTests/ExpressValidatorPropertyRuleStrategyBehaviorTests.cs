@@ -2,6 +2,7 @@
 using KVKarco.ValidationAssistant.Internal;
 using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
+using KVKarco.ValidationAssistant.ValidationRules;
 using System.Globalization;
 
 namespace KVKarco.ValidationAssistant.UnitTests;
@@ -49,7 +50,7 @@ public class ExpressValidatorPropertyRuleStrategyBehaviorTests
         var components = new List<PropertyRuleComponent<object, DummyResources, object>>();
         foreach (var (rule, strategy) in rulesAndStrategies)
         {
-            var info = ComponentFailureInfo.New<object, DummyResources, object>(
+            var info = ValidationRuleFailureInfo.New<object, DummyResources, object>(
                 (ctx, val) => rule.GetDefaultFailureMessage(ctx, val),
                 "TestRule", 1, FailureSeverity.Error, strategy);
             components.Add(new PropertyRuleComponent<object, DummyResources, object>(rule, info));

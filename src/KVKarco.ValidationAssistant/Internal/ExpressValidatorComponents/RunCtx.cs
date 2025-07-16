@@ -83,7 +83,7 @@ internal sealed class ExpressValidatorRunCtx<T, TExternalResources> :
     {
         _currentPropertyKey = key;
         _currentRuleFailure = null; // Clear previous rule failure as we are starting a new property rule.
-        _currentRuleFailureInfo = failureInfo; // Set the info for the current property rule.
+        _currentPropertyFailureInfoBackUp = failureInfo; // Set the info for the current property rule.
         _currentValidationFailureInfo = null; // Clear validation info from previous component.
         _currentPropertyRuleFailures = 0; // Reset property-specific failure count for the new property rule.
     }

@@ -1,5 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Exceptions;
+﻿using KVKarco.ValidationAssistant.Exceptions;
+using KVKarco.ValidationAssistant.ValidationRules;
 
 namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
@@ -34,7 +34,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     /// This will be stored in the internal <see cref="Info"/> field.</param>
     public PropertyRuleComponent(
         IValidationRule<T, TExternalResources, TProperty> rule,
-        ComponentFailureInfo<T, TExternalResources, TProperty> info)
+        ValidationRuleFailureInfo<T, TExternalResources, TProperty> info)
     {
         _rule = rule;
         _asyncRule = null; // Explicitly set to null to indicate a synchronous rule.
@@ -50,7 +50,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     /// This will be stored in the internal <see cref="Info"/> field.</param>
     public PropertyRuleComponent(
         IAsyncValidationRule<T, TExternalResources, TProperty> asyncRule,
-        ComponentFailureInfo<T, TExternalResources, TProperty> info)
+        ValidationRuleFailureInfo<T, TExternalResources, TProperty> info)
     {
         _rule = null; // Explicitly set to null to indicate an asynchronous rule.
         _asyncRule = asyncRule;
@@ -61,7 +61,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
     /// Contains information about how a validation failure should be handled and the factory
     /// for generating custom failure messages for this specific component.
     /// </summary>
-    public ComponentFailureInfo<T, TExternalResources, TProperty> Info { get; }
+    public ValidationRuleFailureInfo<T, TExternalResources, TProperty> Info { get; }
 
     /// <summary>
     /// Gets a value indicating whether the wrapped validation rule is synchronous.
@@ -95,7 +95,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
         if (!_rule!.IsValid(context, property.Value))
         {
             // If validation fails, add a failure to the context with the component's info.
-            context.AddPropertyRuleComponentFailure(property, Info);
+            context.AddValidationRuleFailure(property, Info);
         }
     }
 
@@ -117,7 +117,7 @@ internal sealed class PropertyRuleComponent<T, TExternalResources, TProperty>
         if (!isValid)
         {
             // If validation fails, add a failure to the context with the component's info.
-            context.AddPropertyRuleComponentFailure(property, Info);
+            context.AddValidationRuleFailure(property, Info);
         }
     }
 }

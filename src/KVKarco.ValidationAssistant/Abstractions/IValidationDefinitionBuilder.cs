@@ -5,68 +5,92 @@ namespace KVKarco.ValidationAssistant.Abstractions;
 
 /// <summary>
 /// Defines a foundational, generic contract for building and configuring any type of validator
-/// within the ValidationAssistant framework. This interface serves as the base for
-/// more specific validator definition builders (e.g., for ExpressValidator, ArgumentsGuard, etc.),
-/// providing common capabilities or markers for validator construction.
+/// within the ValidationAssistant framework. It provides common capabilities for validator construction.
 /// </summary>
-/// <typeparam name="T">The type of the instance being validated by the builder.</typeparam>
-/// <typeparam name="TExternalResources">The type providing external resources or dependencies that
-/// might be required for validator construction or evaluation.</typeparam>
+/// <typeparam name="T">The type of the instance being validated.</typeparam>
+/// <typeparam name="TExternalResources">The type providing external resources or dependencies.</typeparam>
+/// <remarks>
+/// <para>
+/// This interface extends <see cref="IConditionalFlowRuleBuilder{T, TExternalResources}"/>,
+/// enabling the definition of rules that are conditionally applied.
+/// </para>
+/// <para>
+/// It also introduces methods for setting default failure strategies at both the PropertyRule
+/// and component levels. These defaults can be overridden by explicit configurations on individual rules.
+/// </para>
+/// </remarks>
 public interface IValidationDefinitionBuilder<T, TExternalResources> :
     IConditionalFlowRuleBuilder<T, TExternalResources>
 {
     /// <summary>
     /// Initiates the definition of validation rules for a specific property of the instance <typeparamref name="T"/>.
-    /// This method is the starting point for defining a *single PropertyRule* composed of one or more
-    /// sequential validation rules that are dependent on each other. This method is common to all validators
-    /// that support property-based validation.
+    /// This is the starting point for defining a *single PropertyRule* composed of sequential validation components.
     /// </summary>
     /// <typeparam name="TProperty">The type of the property being selected for validation.</typeparam>
-    /// <param name="propertySelector">
-    /// An expression that selects the property for which rules are being defined (e.g., <c>x => x.PropertyName</c>).
-    /// </param>
-    /// <param name="callingFileLineNumber">
-    /// The line number in the source file where this method is called. This is automatically
-    /// populated by the compiler and is primarily used for debugging or enhanced error reporting.
-    /// </param>
+    /// <param name="propertySelector">An expression that selects the property (e.g., <c>x => x.PropertyName</c>).</param>
+    /// <param name="callingFileLineNumber">Automatically captures the line number.</param>
     /// <returns>
-    /// An <see cref="IInitialPropertyRuleBuilder{T, TExternalResources, TProperty}"/> instance,
-    /// providing further fluent methods to specify validation criteria for the selected property.
+    /// An <see cref="IInitialPropertyRuleBuilder{T, TExternalResources, TProperty}"/> for further fluent rule definition.
     /// </returns>
     /// <remarks>
-    /// Use this method to chain property-specific rules such as <c>.NotNull()</c>, <c>.NotEmpty()</c>,
-    /// <c>.MatchesRegex()</c>, etc., all of which contribute to the single PropertyRule being built.
+    /// Use this method to chain property-specific rules like <c>.NotNull()</c> or <c>.Length()</c>.
+    /// A PropertyRule's failure strategy determines if subsequent PropertyRules are executed.
     /// </remarks>
-    /// <example>
-    /// <code>
-    /// builder.UseFor(x => x.Name)
-    ///    .NotNullOrEmpty()
-    ///    .Length(1, 100);
-    /// </code>
-    /// </example>
-    /// <exception cref="Exceptions.RuleCreationException">
-    /// Thrown if the <paramref name="propertySelector"/> is <see langword="null"/> or if it represents an invalid
-    /// property selection (e.g., not a member access expression for a property or field).
-    /// </exception>
-    /// <exception cref="Exceptions.ValidationAssistantInternalException">
-    /// Thrown if there is internal bug.
-    /// </exception>
     IInitialPropertyRuleBuilder<T, TExternalResources, TProperty> UseFor<TProperty>(
         Expression<Func<T, TProperty>> propertySelector,
         [CallerLineNumber] int callingFileLineNumber = 0);
 
     /// <summary>
-    /// Sets the default behavior when a validator-level rule encounters a failure.
-    /// This strategy can be overridden on every rule separately.
-    /// It does not influence conditional flow rules.
+    /// Sets the default behavior for all subsequent PropertyRules to continue evaluating
+    /// other rules even if a PropertyRule fails.
     /// </summary>
-    /// <param name="failureStrategy">The <see cref="RuleFailureStrategy"/> to apply by default.</param>
-    void DefaultRuleFailureStrategy(RuleFailureStrategy failureStrategy);
+    /// <remarks>
+    /// This sets the default <c>RuleFailureStrategy</c> to <c>Continue</c>.
+    /// This default can be overridden by explicit strategies on individual PropertyRules.
+    /// It does not affect individual components within a PropertyRule, nor conditional flow rules.
+    /// </remarks>
+    void OnRuleFailureContinue();
 
     /// <summary>
-    /// Sets the default behavior when a part of a validator-level rule fails, primarily for property-level rules.
-    /// This strategy does not influence conditional flow components like snapshots or continue-when components.
+    /// Sets the default behavior for all subsequent PropertyRules to stop validation
+    /// immediately if any PropertyRule fails.
     /// </summary>
-    /// <param name="failureStrategy">The <see cref="ComponentFailureStrategy"/> to apply by default.</param>
-    void DefaultComponentFailureStrategy(ComponentFailureStrategy failureStrategy);
+    /// <remarks>
+    /// This sets the default <c>RuleFailureStrategy</c> to <c>Stop</c>.
+    /// This default can be overridden by explicit strategies on individual PropertyRules.
+    /// It does not affect individual components within a PropertyRule, nor conditional flow rules.
+    /// </remarks>
+    void OnRuleFailureStop();
+
+    /// <summary>
+    /// Sets the default behavior for all subsequent validation components within any PropertyRule
+    /// to continue evaluating other components in the same chain, even if a component fails.
+    /// </summary>
+    /// <remarks>
+    /// This sets the default <c>ComponentFailureStrategy</c> to <c>Continue</c>.
+    /// This default can be overridden by explicit strategies on individual components.
+    /// </remarks>
+    void OnComponentFailureContinue();
+
+    /// <summary>
+    /// Sets the default behavior for all subsequent validation components within any PropertyRule
+    /// to stop evaluating the rest of the rules in that specific PropertyRule chain if a component fails.
+    /// </summary>
+    /// <remarks>
+    /// This sets the default <c>ComponentFailureStrategy</c> to <c>Exit</c>.
+    /// This default can be overridden by explicit strategies on individual components.
+    /// After exiting the component chain, the PropertyRule's own failure strategy applies.
+    /// </remarks>
+    void OnComponentFailureExit();
+
+    /// <summary>
+    /// Sets the default behavior for all subsequent validation components within any PropertyRule
+    /// to stop the *entire validation process immediately* if any component fails.
+    /// </summary>
+    /// <remarks>
+    /// This sets the default <c>ComponentFailureStrategy</c> to <c>Stop</c>.
+    /// This default acts as a global "Fail Fast" mechanism and **overrides** any
+    /// <c>RuleFailureStrategy</c> on the parent PropertyRule.
+    /// </remarks>
+    void OnComponentFailureStop();
 }

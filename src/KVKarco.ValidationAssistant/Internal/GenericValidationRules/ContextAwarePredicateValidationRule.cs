@@ -1,29 +1,21 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.ValidationRules;
 
 namespace KVKarco.ValidationAssistant.Internal.GenericValidationRules;
 
-/// <summary>
-/// Represents a synchronous validation rule that uses a context-aware predicate function
-/// to determine the validity of a property. This rule provides the predicate with full
-/// access to the validation run context, including the main object instance and external resources.
-/// </summary>
-/// <typeparam name="T">The type of the main object instance being validated.</typeparam>
-/// <typeparam name="TExternalResources">The type of external resources or dependencies available to the rule.</typeparam>
-/// <typeparam name="TProperty">The type of the property being validated by this rule.</typeparam>
 internal sealed class ContextAwarePredicateValidationRule<T, TExternalResources, TProperty> :
-    IValidationRule<T, TExternalResources, TProperty>
+    ValidationRule<T, TExternalResources, TProperty>
 {
-    /// <summary>
-    /// The context-aware predicate function used to evaluate the validity of the property.
-    /// </summary>
-    private readonly ContextAwarePropertyPredicate<T, TExternalResources, TProperty> _predicate;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ContextAwarePredicateValidationRule{T, TExternalResources, TProperty}"/> class.
-    /// </summary>
-    /// <param name="predicate">The synchronous, context-aware predicate function that defines the validation logic for the property.</param>
+    private readonly ContextAwarePropertyPredicate<T, TExternalResources, TProperty>? _predicate;
+
+    private readonly AsyncContextAwarePropertyPredicate<T, TExternalResources, TProperty>? _asyncPredicate;
+
     public ContextAwarePredicateValidationRule(ContextAwarePropertyPredicate<T, TExternalResources, TProperty> predicate)
-        => _predicate = predicate;
+        : base(true) => _predicate = predicate;
+
+    public ContextAwarePredicateValidationRule(AsyncContextAwarePropertyPredicate<T, TExternalResources, TProperty> asyncPredicate)
+       : base(false) => _asyncPredicate = asyncPredicate;
 
     /// <summary>
     /// Gets the unique name of this validation rule. This is typically a predefined constant
@@ -67,14 +59,13 @@ internal sealed class ContextAwarePredicateAsyncValidationRule<T, TExternalResou
     /// <summary>
     /// The asynchronous, context-aware predicate function used to evaluate the validity of the property.
     /// </summary>
-    private readonly AsyncContextAwarePropertyPredicate<T, TExternalResources, TProperty> _asyncPredicate;
+
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ContextAwarePredicateAsyncValidationRule{T, TExternalResources, TProperty}"/> class.
     /// </summary>
     /// <param name="asyncPredicate">The asynchronous, context-aware predicate function that defines the validation logic for the property.</param>
-    public ContextAwarePredicateAsyncValidationRule(AsyncContextAwarePropertyPredicate<T, TExternalResources, TProperty> asyncPredicate)
-        => _asyncPredicate = asyncPredicate;
+
 
     /// <summary>
     /// Gets the unique name of this asynchronous validation rule. This is typically a predefined constant

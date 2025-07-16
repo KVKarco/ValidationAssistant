@@ -59,6 +59,7 @@ public enum ComponentFailureStrategy
 /// </summary>
 public enum FailureSeverity
 {
+    Fatal,
     /// <summary>
     /// The failure will be sent to the client (usually UI), and the validation result will be invalid.
     /// An explanation of the failure is added to the result, typically for logging.

@@ -1,4 +1,5 @@
-﻿using KVKarco.ValidationAssistant.Internal.Utilities;
+﻿using KVKarco.ValidationAssistant.Internal;
+using KVKarco.ValidationAssistant.Internal.Utilities;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
@@ -40,6 +41,18 @@ public sealed class RuleCreationException : ValidationAssistantException
     {
     }
 
+    internal static void ThrowIfPropertyValueIsMissing<TProperty>(
+        [NotNull] ValidatorRunCtx context,
+        [NotNull] Undefined<TProperty> property,
+        [NotNull] ValidationRuleFailureInfo failureInfo)
+    {
+        if (!property.HasValue)
+        {
+            throw new RuleCreationException(
+                $"{failureInfo.Title} Property {context.PropertyName} value cant be extracted parent property is null use ContinueWhen or wrap the rule in UseWhen");
+        }
+    }
+
     /// <summary>
     /// Throws a <see cref="RuleCreationException"/> if the specified <paramref name="argument"/> is <see langword="null"/>.
     /// </summary>
@@ -47,7 +60,7 @@ public sealed class RuleCreationException : ValidationAssistantException
     /// <param name="argument">The argument to check for <see langword="null"/>.</param>
     /// <param name="argumentName">The name of the argument, automatically captured by <see cref="CallerArgumentExpressionAttribute"/>.</param>
     /// <exception cref="RuleCreationException">Thrown if <paramref name="argument"/> is <see langword="null"/>.</exception>
-    public static void ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
+    internal static void ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
     {
         if (argument is null)
         {
@@ -64,7 +77,7 @@ public sealed class RuleCreationException : ValidationAssistantException
     /// <exception cref="RuleCreationException">
     /// Thrown if <paramref name="argument"/> is <see langword="null"/>, empty, or consists only of white-space characters.
     /// </exception>
-    public static void ThrowIfNullOrWhiteSpaces([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
+    internal static void ThrowIfNullOrWhiteSpaces([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
     {
         ThrowIfNull(argument, argumentName); // Checks for null first
 
@@ -85,7 +98,7 @@ public sealed class RuleCreationException : ValidationAssistantException
     /// <param name="argument">The lambda expression to validate as a property selector.</param>
     /// <param name="argumentName">The name of the argument, automatically captured by <see cref="CallerArgumentExpressionAttribute"/>.</param>
     /// <exception cref="RuleCreationException">Thrown if the selector is <see langword="null"/> or invalid as per the rules.</exception>
-    public static void ThrowIfInvalidSelector([NotNull] LambdaExpression? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
+    internal static void ThrowIfInvalidSelector([NotNull] LambdaExpression? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
     {
         ThrowIfNull(argument, argumentName);
 
@@ -138,7 +151,7 @@ public sealed class RuleCreationException : ValidationAssistantException
     /// <param name="argument">The lambda expression to validate as an input extractor.</param>
     /// <param name="argumentName">The name of the argument, automatically captured by <see cref="CallerArgumentExpressionAttribute"/>.</param>
     /// <exception cref="RuleCreationException">Thrown if the extractor is <see langword="null"/> or invalid as per the rules.</exception>
-    public static void ThrowIfInvalidInputExtractor([NotNull] LambdaExpression? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
+    internal static void ThrowIfInvalidInputExtractor([NotNull] LambdaExpression? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
     {
         ThrowIfNull(argument, argumentName);
 
@@ -168,7 +181,7 @@ public sealed class RuleCreationException : ValidationAssistantException
     /// <param name="argument">The member expression to validate.</param>
     /// <param name="argumentName">The name of the argument, automatically captured by <see cref="CallerArgumentExpressionAttribute"/>.</param>
     /// <exception cref="RuleCreationException">Thrown if the argument is <see langword="null"/> or invalid.</exception>
-    public static void ThrowIfNotMemberOrPropertyExpression([NotNull] MemberExpression? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
+    internal static void ThrowIfNotMemberOrPropertyExpression([NotNull] MemberExpression? argument, [CallerArgumentExpression(nameof(argument))] string? argumentName = null)
     {
         ThrowIfNull(argument, argumentName);
 

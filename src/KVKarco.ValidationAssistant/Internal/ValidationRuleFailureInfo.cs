@@ -5,9 +5,9 @@
 /// This class encapsulates details about the failing rule, including its name,
 /// where it was declared, and how influence the validation run.
 /// </summary>
-internal abstract class ComponentFailureInfo
+internal abstract class ValidationRuleFailureInfo
 {
-    public ComponentFailureInfo(int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
+    public ValidationRuleFailureInfo(int declaredOnLine, FailureSeverity severity, ComponentFailureStrategy strategy)
     {
         Strategy = strategy;
         DeclaredOnLine = declaredOnLine;
@@ -22,7 +22,7 @@ internal abstract class ComponentFailureInfo
 
     public abstract string Title { get; }
 
-    public static ComponentFailureInfo<T, TExternalResources, TProperty> New<T, TExternalResources, TProperty>(
+    public static ValidationRuleFailureInfo<T, TExternalResources, TProperty> New<T, TExternalResources, TProperty>(
         FailureMessageFactory<T, TExternalResources, TProperty> failureMessageFactory,
         ReadOnlySpan<char> ruleName,
         int declaredOnLine,
@@ -31,10 +31,10 @@ internal abstract class ComponentFailureInfo
         => new(failureMessageFactory, ruleName, declaredOnLine, severity, strategy);
 }
 
-internal sealed class ComponentFailureInfo<T, TExternalResources, TProperty> :
-    ComponentFailureInfo
+internal sealed class ValidationRuleFailureInfo<T, TExternalResources, TProperty> :
+    ValidationRuleFailureInfo
 {
-    public ComponentFailureInfo(
+    public ValidationRuleFailureInfo(
         FailureMessageFactory<T, TExternalResources, TProperty> failureMessageFactory,
         ReadOnlySpan<char> ruleName,
         int declaredOnLine,

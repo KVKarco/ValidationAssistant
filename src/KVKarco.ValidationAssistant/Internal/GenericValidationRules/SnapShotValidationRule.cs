@@ -1,4 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.ValidationRules;
 
 namespace KVKarco.ValidationAssistant.Internal.GenericValidationRules;
 

@@ -29,17 +29,24 @@ public abstract class ValidatorRunCtx
     /// </summary>
     private protected RuleFailure? _currentRuleFailure;
 
+
+    /// <summary>
+    /// Stores metadata about for the most recent property rule if there is components failures 
+    /// to be use as _currentRuleFailureInfo.
+    /// </summary>
+    private protected RuleFailureInfo? _currentPropertyFailureInfoBackUp;
+
     /// <summary>
     /// Stores metadata about the configuration of the most recent rule failure.
     /// This includes strategy for stopping or exiting rules.
     /// </summary>
-    private protected RuleFailureInfo? _currentRuleFailureInfo;
+    //private protected RuleFailureInfo? _currentRuleFailureInfo;
 
     /// <summary>
     /// Stores metadata about the configuration of the most recent validation failure
     /// that applies to a specific property.
     /// </summary>
-    private protected ComponentFailureInfo? _currentValidationFailureInfo;
+    private protected ValidationRuleFailureInfo? _currentValidationFailureInfo;
 
     /// <summary>
     /// Tracks the total count of validation failures accumulated during the entire validation run.
@@ -219,17 +226,8 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// </exception>
     internal bool ToStopValidation()
     {
-        if (_currentRuleFailure is null)
-        {
-            return false;
-        }
-
-        if (_currentRuleFailureInfo is null || _currentValidationFailureInfo is null)
-        {
-            throw new ValidationAssistantInternalException("Debug how RuleFailureInfo or ValidationFailureInfo is null in ToStopValidation.");
-        }
-
-        return _currentRuleFailureInfo.Strategy == RuleFailureStrategy.Stop || _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop;
+        return Result.IsValidationRunForceStopped || _currentRuleFailure is not null && (_currentRuleFailure.Info.Strategy == RuleFailureStrategy.Stop
+            || (_currentValidationFailureInfo is not null && _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop));
     }
 
     /// <summary>
@@ -249,14 +247,9 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
             return currentIndex + 1; // No failure, proceed to the next rule
         }
 
-        if (_currentRuleFailureInfo is null)
-        {
-            throw new ValidationAssistantInternalException("Debug how RuleFailureInfo is null in CalculateNextIndex.");
-        }
-
         // If rules should be skipped due to a logical rule failure, calculate the new index
         // Otherwise, just move to the next rule
-        return _currentRuleFailureInfo.RulesToSkip == 0 ? currentIndex + 1 : currentIndex + _currentRuleFailureInfo.RulesToSkip + 1;
+        return _currentRuleFailure.Info.RulesToSkip == 0 ? currentIndex + 1 : currentIndex + _currentRuleFailure.Info.RulesToSkip + 1;
     }
 
     /// <summary>
@@ -266,7 +259,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     internal virtual void ForLogicalRule()
     {
         _currentRuleFailure = null;
-        _currentRuleFailureInfo = null;
+        _currentPropertyFailureInfoBackUp = null;
         _currentValidationFailureInfo = null;
         _currentPropertyRuleFailures = 0;
     }
@@ -280,7 +273,6 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     {
         // Create a new LogicalRuleFailure based on the provided info and its explanation
         _currentRuleFailure = new LogicalRuleFailure(failureInfo, failureInfo.ExplanationFactory(this));
-        _currentRuleFailureInfo = failureInfo;
         Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
     }
 
@@ -295,7 +287,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// Thrown if <see cref="_currentRuleFailureInfo"/> is not of the expected type or is null when adding a property validation failure.
     /// This indicates an internal logic error.
     /// </exception>
-    internal void AddPropertyRuleComponentFailure<TProperty>(Undefined<TProperty> property, ComponentFailureInfo<T, TExternalResources, TProperty> failureInfo)
+    internal void AddValidationRuleFailure<TProperty>(Undefined<TProperty> property, ValidationRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
     {
         // Only increment failure counts if the severity is not 'Info'.
         // 'Info' level failures are typically for reporting/logging and do not indicate a break in validation.
@@ -311,7 +303,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         // create a new PropertyRuleFailure and add it to the result.
         if (_currentRuleFailure is null)
         {
-            if (_currentRuleFailureInfo is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
+            if (_currentPropertyFailureInfoBackUp is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
             {
                 // Create a new PropertyRuleFailure using the property, its path, and an explanation
                 _currentRuleFailure = new PropertyRuleFailure<TProperty>(
@@ -321,7 +313,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
             else
             {
                 // Internal error: RuleFailureInfo should be a PropertyRuleFailureInfo at this point
-                throw new ValidationAssistantInternalException("Debug how PropertyRuleFailureInfo is wrong type or null in AddValidationFailure.");
+                throw new ValidationAssistantInternalException("Debug how _currentPropertyFailureInfoBackUp is wrong type or null in AddValidationFailure.");
             }
         }
 
@@ -342,7 +334,6 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         // Create a new PreValidationRuleFailure based on the provided info and its explanation
         _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this));
         _currentRuleFailure.AddValidationFailure(validationFailure);
-        _currentRuleFailureInfo = failureInfo;
         _currentValidationFailureInfo = validationFailure.Info; // Assuming ValidationFailure has an 'Info' property of type ComponentFailureInfo
         Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
     }
@@ -362,7 +353,7 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
     /// <param name="property">The <see cref="Undefined{TProperty}"/> instance representing the missing property's state.</param>
     /// <param name="failureInfo">The <see cref="PropertyRuleFailureInfo{T, TExternalResources, TProperty}"/> associated with the property rule.
     /// This information is used to construct the <see cref="PropertyRuleFailure"/>.</param>
-    internal void AddPropertyRuleMissingValueFailure<TProperty>(
+    internal void ForceStopWhenPropertyValueIsMissing<TProperty>(
         Undefined<TProperty> property,
         [NotNull] PropertyRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
     {
@@ -370,12 +361,15 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
         // It uses the explanation factory from the provided failureInfo to generate the message.
         _currentRuleFailure = new PropertyRuleFailure<TProperty>(
             property,
-            CorrectPropertyPath,
+            "",
             failureInfo,
-            failureInfo.ExplanationFactory(this, property.Value)); // Pass property.Value to the explanation factory even if Undefined, as it may be relevant.
+            "Property value cant be extracted validation is stopped with single failure ... if desire is for this property rule to be optional wrap the rule in UseWhen and check the parent for null or use ContinueWhen to check if the parent is null."); // Pass property.Value to the explanation factory even if Undefined, as it may be relevant.
 
-        _currentRuleFailureInfo = failureInfo; // Set the current rule failure info.
-        Result.AddRuleFailure(_currentRuleFailure); // Add this rule failure to the overall validation result.
+        Result.Clear(_currentRuleFailure); // Clear the result because this is fatal severity failure.
+        _currentRuleFailure.AddValidationFailure(
+            ValidationFailure.ForMissingPropertyValue(this));
+        // we need to add a validation failure to the current rule failure
+        // and some how stop the validation run.
 
         // IMPORTANT: The _totalValidationFailures is NOT incremented here.
         // As per the refined design, a "missing value" for an optional property
