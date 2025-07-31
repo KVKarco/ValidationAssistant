@@ -26,7 +26,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
     protected readonly List<PropertyRuleComponent<T, TExternalResources, TProperty>> _ruleComponents = []; // Components added to this specific property rule
 
     // Rule-level default failure strategies
-    protected RuleFailureStrategy _onRuleFailure;
+    protected ValidatorFlow _onRuleFailure;
 
     private readonly PendingComponentState<T, TExternalResources, TProperty> _componentResolver;
 
@@ -38,8 +38,8 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
     /// <param name="declaredOnLine">The line number where this property rule was declared in the source code.</param>
     /// <param name="snapShots">A reference to the list of snapshots from the main validator builder.</param>
     protected PropertyRuleBuilder(
-        RuleFailureStrategy defaultRuleFailureStrategy,
-        ComponentFailureStrategy defaultComponentFailureStrategy,
+        ValidatorFlow defaultRuleFailureStrategy,
+        RuleSetFlow defaultComponentFailureStrategy,
         int declaredOnLine,
         List<string> snapShots)
     {
@@ -72,7 +72,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
 
     /// <inheritdoc/>
     public IInitialPropertyRuleBuilder<T, TExternalResources, TProperty> DefaultOnRuleFailure(
-        RuleFailureStrategy onFailure)
+        ValidatorFlow onFailure)
     {
         // No need to ResolveLastComponent here as these are initial rule-level settings.
         _onRuleFailure = onFailure;
@@ -81,7 +81,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
 
     /// <inheritdoc/>
     public IInitialPropertyRuleBuilder<T, TExternalResources, TProperty> DefaultOnComponentFailure(
-        ComponentFailureStrategy onFailure,
+        RuleSetFlow onFailure,
         FailureSeverity severity = FailureSeverity.Error)
     {
         // No need to ResolveLastComponent here as these are initial rule-level settings.
@@ -111,7 +111,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         _componentResolver.NextComponent(
             new SnapShotValidationRule<T, TExternalResources, TProperty>(snapShotIdentifier, true),
             callingFileLineNumber,
-            ComponentFailureStrategy.Continue,
+            RuleSetFlow.Continue,
             FailureSeverity.Info);
 
         return this;
@@ -135,7 +135,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         _componentResolver.NextComponent(
             new SnapShotValidationRule<T, TExternalResources, TProperty>(snapShotIdentifier, false),
             callingFileLineNumber,
-            ComponentFailureStrategy.Exit,
+            RuleSetFlow.Exit,
             FailureSeverity.Info);
 
         if (failureInfoMessage is not null)
@@ -158,7 +158,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         _componentResolver.NextComponent(
             new ConditionalFlowValidationRule<T, TExternalResources, TProperty>(condition),
             callingFileLineNumber,
-            ComponentFailureStrategy.Exit,
+            RuleSetFlow.Exit,
             FailureSeverity.Info);
 
         if (failureInfoMessage is not null)
@@ -181,7 +181,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         _componentResolver.NextComponent(
             new ConditionalFlowAsyncValidationRule<T, TExternalResources, TProperty>(asyncCondition),
             callingFileLineNumber,
-            ComponentFailureStrategy.Exit,
+            RuleSetFlow.Exit,
             FailureSeverity.Info);
 
         if (failureInfoMessage is not null)
@@ -198,7 +198,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
 
     /// <inheritdoc/>
     public IValidationComponentFailureOptionsBuilder<T, TExternalResources, TProperty> Ensure(
-        PropertyPredicate<TProperty> predicate,
+        ValidityPredicate<TProperty> predicate,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
@@ -226,7 +226,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
 
     /// <inheritdoc/>
     public IValidationComponentFailureOptionsBuilder<T, TExternalResources, TProperty> EnsureAsync(
-        AsyncPropertyPredicate<TProperty> asyncPredicate,
+        AsyncValidityPredicate<TProperty> asyncPredicate,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
@@ -286,7 +286,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
 
     /// <inheritdoc/>
     public IValidationComponentFailureOptionsBuilder<T, TExternalResources, TProperty> OnFailure(
-       ComponentFailureStrategy onFailure)
+       RuleSetFlow onFailure)
     {
         _componentResolver.Override(onFailure);
         return this;

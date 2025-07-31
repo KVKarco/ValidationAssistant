@@ -1,5 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Exceptions;
+﻿using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.Internal.PreValidation;
 using KVKarco.ValidationAssistant.Internal.ValidationFlow;
 using System.Runtime.CompilerServices;
@@ -42,11 +41,11 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     protected readonly List<IPreValidationRule<T, TExternalResources>> _preValidationRules;
 
     /// <summary>
-    /// A list of <see cref="IValidatorRule{T, TExternalResources, TContext}"/> instances that constitute
+    /// A list of <see cref="IValidatorComponent{T, TExternalResources, TContext}"/> instances that constitute
     /// the main validation logic. This list will be populated by the concrete builder's
     /// implementation of <see cref="ICoreValidationDefinitionBuilder{T, TExternalResources}"/>.
     /// </summary>
-    protected readonly List<IValidatorRule<T, TExternalResources, TContext>> _rules;
+    protected readonly List<IValidatorComponent<T, TExternalResources, TContext>> _rules;
 
     /// <summary>
     /// Holds the <see cref="IBuildableRule{T, TExternalResources, TContext}"/> instance that is currently
@@ -78,16 +77,16 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         RuleComponentsFailureStrategy = ValidatorsConfig.GlobalDefaults.OnComponentFailure;
     }
 
-    public RuleFailureStrategy RuleFailureStrategy { get; set; }
+    public ValidatorFlow RuleFailureStrategy { get; set; }
 
-    public ComponentFailureStrategy RuleComponentsFailureStrategy { get; set; }
+    public RuleSetFlow RuleComponentsFailureStrategy { get; set; }
 
     /// <inheritdoc/>
-    public void DefaultRuleFailureStrategy(RuleFailureStrategy ruleFailureStrategy)
+    public void DefaultRuleFailureStrategy(ValidatorFlow ruleFailureStrategy)
         => RuleFailureStrategy = ruleFailureStrategy;
 
     /// <inheritdoc/>
-    public void DefaultComponentFailureStrategy(ComponentFailureStrategy componentFailureStrategy)
+    public void DefaultComponentFailureStrategy(RuleSetFlow componentFailureStrategy)
         => RuleComponentsFailureStrategy = componentFailureStrategy;
 
     /// <inheritdoc/>
@@ -313,7 +312,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     /// </summary>
     /// <param name="rule">The compiled validator rule to place.</param>
     /// <param name="reservationIndex">Optional. The index of the reserved slot. If null, the rule is added to the end.</param>
-    protected virtual void SetRuleToReservedSlot(IValidatorRule<T, TExternalResources, TContext> rule, int? reservationIndex = null)
+    protected virtual void SetRuleToReservedSlot(IValidatorComponent<T, TExternalResources, TContext> rule, int? reservationIndex = null)
     {
         if (reservationIndex is not null)
         {

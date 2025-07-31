@@ -1,5 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Internal;
+using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 namespace KVKarco.ValidationAssistant.ValidationRules;
 
@@ -13,7 +14,7 @@ namespace KVKarco.ValidationAssistant.ValidationRules;
 /// <typeparam name="TExternalResources">The type representing any external resources required during validation.</typeparam>
 /// <typeparam name="TProperty">The type of the property being validated by this rule.</typeparam>
 public abstract class CustomValidationRule<T, TExternalResources, TProperty> :
-    ValidationRule<T, TExternalResources, TProperty>,
+    ValidationComponent<T, TExternalResources, TProperty>,
     IValidationRule<T, TExternalResources, TProperty> // Implements the synchronous contract
 {
     /// <summary>
@@ -35,7 +36,7 @@ public abstract class CustomValidationRule<T, TExternalResources, TProperty> :
 
     /// <summary>
     /// <inheritdoc/>
-    /// Overrides the internal <see cref="ValidationRule{T, TExternalResources, TProperty}.Validate"/> method to provide
+    /// Overrides the internal <see cref="ValidationComponent{T, TExternalResources, TProperty}.Validate"/> method to provide
     /// the concrete synchronous execution flow for custom rules. It checks for missing property values
     /// and then delegates to the abstract <see cref="IsValid(IValidationCtx{T, TExternalResources}, TProperty)"/> method.
     /// If <see cref="IsValid"/> returns <c>false</c>, a validation failure is added to the context.

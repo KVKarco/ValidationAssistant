@@ -1,98 +1,111 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal;
 
 namespace KVKarco.ValidationAssistant;
 
-/// <summary>
-/// Represents the comprehensive result of a single validator run.
-/// This sealed class encapsulates all collected failures, whether from
-/// pre-validation checks or specific validation rules, and provides methods
-/// to query the validation status and retrieve detailed failure information.
-/// </summary>
 public sealed class ValidatorRunResult
 {
-    internal bool IsValidationRunForceStopped { get; private set; }
+    private readonly string _validatorName;
+    private List<ValidatorComponentLog> _executionLogs;
 
-    /// <summary>
-    /// A private list to store individual <see cref="RuleFailure"/> instances encountered during the validation run.
-    /// This list is lazily initialized.
-    /// </summary>
-    private List<RuleFailure>? _failures;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ValidatorRunResult"/> class.
-    /// </summary>
-    /// <param name="producedFromValidator">The name or identifier of the validator that initiated and produced this result.</param>
     internal ValidatorRunResult(string producedFromValidator)
     {
-        ProducedFromValidator = producedFromValidator;
-        IsValidationRunForceStopped = false;
+        _validatorName = producedFromValidator;
+        _executionLogs = [];
     }
 
-    /// <summary>
-    /// Gets the name or identifier of the validator that produced this validation result.
-    /// </summary>
-    public string ProducedFromValidator { get; }
+    public bool IsFailed { get; internal set; }
 
-    /// <summary>
-    /// Gets a value indicating whether the instance being validated is considered valid.
-    /// An instance is valid if there are no pre-validation failures and no rule failures
-    /// that contain actual validation failures.
-    /// </summary>
-    public bool IsValid => _failures is null || !_failures.Any(x => x.HasValidationFailures);
-
-    internal void Clear(RuleFailure ruleFailure)
+    public ValidatorLog GetValidationLog()
     {
-        IsValidationRunForceStopped = true;
-        _failures?.Clear(); // Clear the list of failures if it exists
-        _failures ??= [];
-        _failures.Add(ruleFailure); // Add the provided rule failure to the list
+        return new ValidatorLog(_validatorName, !IsFailed, _executionLogs);
     }
-    //TODO: create PreValidationFailureInfo
 
-    public IReadOnlyDictionary<string, IReadOnlyCollection<ValidationFailure>> GetFailures()
+    public IReadOnlyDictionary<string, IReadOnlyList<ValidationRuleFailure>> GetStructuredFailures()
     {
-        if (IsValid) // Changed from _failures is null to IsValid check based on typical usage
+        if (!IsFailed)
         {
             throw new ValidationRunException("Can't get failures from a successful validation run.");
         }
 
-        // Filter for RuleFailures that actually contain validation failures and convert to a dictionary
-        return _failures!.Where(x => x.HasValidationFailures)
-                         .ToDictionary(static x => x.Path!, static x => x.ValidationFailures);
-    }
+        var result = new Dictionary<string, IReadOnlyList<ValidationRuleFailure>>();
 
-    /// <summary>
-    /// Retrieves a dictionary of error messages, grouped by property path.
-    /// If a pre-validation failure occurred, its message is included under an empty string key ("").
-    /// </summary>
-    /// <returns>
-    /// A dictionary where the keys are property paths (or an empty string for pre-validation failures)
-    /// and the values are collections of corresponding error messages.
-    /// </returns>
-    /// <exception cref="ValidationRunException">
-    /// Thrown if this method is called when the <see cref="ValidatorRunResult"/> indicates a successful validation (<see cref="IsValid"/> is <see langword="true"/>).
-    /// </exception>
-    public IReadOnlyDictionary<string, IReadOnlyCollection<string>> GetErrorMessages()
-    {
-        if (IsValid) // Changed from _failures is null to IsValid check based on typical usage
+        for (int i = 0; i < _executionLogs.Count; i++)
         {
-            throw new ValidationRunException("Can't get error messages from a successful validation run.");
+            var log = _executionLogs[i];
+            if (log.Status == ExecutionStatus.Failed)
+            {
+                if (result.TryGetValue(log.Path, out var list))
+                {
+                    var castList = (List<ValidationRuleFailure>)list;
+
+                    foreach (var failure in log.GetFailures())
+                    {
+                        castList.Add(failure);
+                    }
+                }
+                else
+                {
+                    List<ValidationRuleFailure> failures = [];
+                    foreach (var failure in log.GetFailures())
+                    {
+                        failures.Add(failure);
+                    }
+
+                    if (failures.Count > 0)
+                    {
+                        result[log.Path] = failures;
+                    }
+                }
+            }
         }
 
-        // Filter for RuleFailures that contain validation messages and convert to a dictionary of messages
-        return _failures!.Where(x => x.HasValidationFailures)
-                         .ToDictionary(static x => x.Path!, static x => x.ValidationFailuresMessages);
+        return result.AsReadOnly();
     }
 
-    /// <summary>
-    /// Adds a <see cref="RuleFailure"/> to the collection of failures for this validation result.
-    /// The internal list of failures is initialized if it does not already exist.
-    /// </summary>
-    /// <param name="failure">The <see cref="RuleFailure"/> instance to add.</param>
-    internal void AddRuleFailure(RuleFailure failure)
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> GetStructuredFailureMessages()
     {
-        _failures ??= []; // Initialize list if null
-        _failures.Add(failure); // Add the new failure
+        if (!IsFailed)
+        {
+            throw new ValidationRunException("Can't get failures from a successful validation run.");
+        }
+
+        var result = new Dictionary<string, IReadOnlyList<string>>();
+
+        for (int i = 0; i < _executionLogs.Count; i++)
+        {
+            var log = _executionLogs[i];
+            if (log.Status == ExecutionStatus.Failed)
+            {
+                if (result.TryGetValue(log.Path, out var list))
+                {
+                    var castList = (List<string>)list;
+
+                    foreach (var message in log.GetFailureMessages())
+                    {
+                        castList.Add(message);
+                    }
+                }
+                else
+                {
+                    List<string> messages = [];
+                    foreach (var message in log.GetFailureMessages())
+                    {
+                        messages.Add(message);
+                    }
+
+                    if (messages.Count > 0)
+                    {
+                        result[log.Path] = messages;
+                    }
+                }
+            }
+        }
+
+        return result.AsReadOnly();
+    }
+
+    internal void AddComponentLog(ValidatorComponentLog log)
+    {
+        _executionLogs.Add(log);
     }
 }

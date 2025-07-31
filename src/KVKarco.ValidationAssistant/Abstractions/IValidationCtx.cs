@@ -14,7 +14,7 @@ public interface IValidationCtx<T, TExternalResources>
     /// <summary>
     /// Gets the instance of the object currently being validated.
     /// </summary>
-    T ValidationInstance { get; }
+    T Value { get; }
 
     /// <summary>
     /// Gets the external resources available to the validation rules.

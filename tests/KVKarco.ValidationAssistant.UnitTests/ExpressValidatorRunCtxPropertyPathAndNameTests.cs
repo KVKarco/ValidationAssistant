@@ -9,13 +9,13 @@ public class ExpressValidatorRunCtxPropertyPathAndNameTests
     private class DummyResources { }
     private class DummyRuleFailureInfo : RuleFailureInfo
     {
-        public DummyRuleFailureInfo() : base("Validator", "Rule", 1, RuleFailureStrategy.Continue, 0) { }
+        public DummyRuleFailureInfo() : base("Validator", "Rule", 1, ValidatorFlow.Continue, 0) { }
     }
 
     [Fact]
     public void PropertyName_And_CorrectPropertyPath_Are_Empty_By_Default()
     {
-        var ctx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<object, DummyResources>(
             fromValidator: "TestValidator",
             value: new object(),
             resources: new DummyResources(),
@@ -31,7 +31,7 @@ public class ExpressValidatorRunCtxPropertyPathAndNameTests
     [Fact]
     public void ForProperty_Sets_CurrentPropertyKey_And_Resets_State()
     {
-        var ctx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<object, DummyResources>(
             fromValidator: "TestValidator",
             value: new object(),
             resources: new DummyResources(),
@@ -52,7 +52,7 @@ public class ExpressValidatorRunCtxPropertyPathAndNameTests
     [Fact]
     public void CorrectPropertyPath_Composes_Multiple_Nested_Contexts()
     {
-        var rootCtx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var rootCtx = new CustomValidatorRunCtx<object, DummyResources>(
             fromValidator: "RootValidator",
             value: new object(),
             resources: new DummyResources(),
@@ -61,7 +61,7 @@ public class ExpressValidatorRunCtxPropertyPathAndNameTests
             result: null,
             parentContext: null);
 
-        var midCtx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var midCtx = new CustomValidatorRunCtx<object, DummyResources>(
             fromValidator: "MidValidator",
             value: new object(),
             resources: new DummyResources(),
@@ -70,7 +70,7 @@ public class ExpressValidatorRunCtxPropertyPathAndNameTests
             result: null,
             parentContext: rootCtx);
 
-        var leafCtx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var leafCtx = new CustomValidatorRunCtx<object, DummyResources>(
             fromValidator: "LeafValidator",
             value: new object(),
             resources: new DummyResources(),
@@ -93,7 +93,7 @@ public class ExpressValidatorRunCtxPropertyPathAndNameTests
     [Fact]
     public void CorrectPropertyPath_Empty_When_PropertyKey_Is_Empty()
     {
-        var ctx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<object, DummyResources>(
             fromValidator: "TestValidator",
             value: new object(),
             resources: new DummyResources(),

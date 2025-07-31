@@ -1,5 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
+using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 namespace KVKarco.ValidationAssistant.Internal.Utilities;
 
 /// <summary>
-/// Provides a static, thread-safe caching mechanism for compiled <see cref="ExpressValidatorCore{T, TExternalResources}"/> instances
+/// Provides a static, thread-safe caching mechanism for compiled <see cref="CustomValidatorCore{T, TExternalResources}"/> instances
 /// and <see cref="PropertyCtx"/> objects. This cache optimizes performance by storing and reusing
 /// compiled validator cores and property contexts once they have been built, avoiding redundant
 /// compilation of validation rules and property access delegates.
@@ -16,7 +16,7 @@ internal static class InternalCache
 {
     /// <summary>
     /// A thread-safe dictionary that caches <see cref="Lazy{T}"/> instances of <see cref="ValidatorCore"/>,
-    /// keyed by the concrete <see cref="Type"/> of the <see cref="ExpressValidator{T, TExternalResources}"/> that owns them.
+    /// keyed by the concrete <see cref="Type"/> of the <see cref="CustomValidator{T, TExternalResources}"/> that owns them.
     /// The <see cref="Lazy{T}"/> ensures that the validator core is built only once, atomically, when first requested.
     /// </summary>
     private static readonly ConcurrentDictionary<Type, Lazy<ValidatorCore>> _coresCache = [];
@@ -29,24 +29,24 @@ internal static class InternalCache
     private static readonly ConcurrentDictionary<string, PropertyCtx> _membersCtxCache = [];
 
     /// <summary>
-    /// Retrieves a compiled <see cref="ExpressValidatorCore{T, TExternalResources}"/> from the cache,
+    /// Retrieves a compiled <see cref="CustomValidatorCore{T, TExternalResources}"/> from the cache,
     /// or builds and adds it to the cache if it does not already exist for the given validator type.
     /// This method ensures that validator core compilation happens only once per validator type across the application lifetime.
     /// </summary>
     /// <typeparam name="T">The type of the instance being validated by the validator core.</typeparam>
     /// <typeparam name="TExternalResources">The type of external resources used by the validator core.</typeparam>
-    /// <param name="validatorType">The concrete <see cref="Type"/> of the <see cref="ExpressValidator{T, TExternalResources}"/>.</param>
+    /// <param name="validatorType">The concrete <see cref="Type"/> of the <see cref="CustomValidator{T, TExternalResources}"/>.</param>
     /// <param name="preValidationRuleCreator">An action that defines the pre-validation rules for the validator,
-    /// typically provided by the <c>ExpressPreValidationRules</c> method of <see cref="ExpressValidator{T, TExternalResources}"/>.</param>
+    /// typically provided by the <c>ExpressPreValidationRules</c> method of <see cref="CustomValidator{T, TExternalResources}"/>.</param>
     /// <param name="ruleCreator">An action that defines the main validation rules for the validator,
-    /// typically provided by the abstract <c>ExpressRules</c> method of <see cref="ExpressValidator{T, TExternalResources}"/>.</param>
-    /// <returns>A compiled and cached instance of <see cref="ExpressValidatorCore{T, TExternalResources}"/>.</returns>
+    /// typically provided by the abstract <c>ExpressRules</c> method of <see cref="CustomValidator{T, TExternalResources}"/>.</param>
+    /// <returns>A compiled and cached instance of <see cref="CustomValidatorCore{T, TExternalResources}"/>.</returns>
     /// <remarks>
     /// This method uses <see cref="Lazy{T}"/> to ensure thread-safe, one-time initialization of the validator core.
-    /// The actual compilation logic is encapsulated within the <see cref="ExpressValidatorCoreBuilder{T, TExternalResources}"/>,
+    /// The actual compilation logic is encapsulated within the <see cref="CustomValidatorCoreBuilder{T, TExternalResources}"/>,
     /// which implements the rule expression builder interfaces.
     /// </remarks>
-    public static ExpressValidatorCore<T, TExternalResources> GetOrAddExpressValidatorCore<T, TExternalResources>(
+    public static CustomValidatorCore<T, TExternalResources> GetOrAddExpressValidatorCore<T, TExternalResources>(
         Type validatorType,
         Action<IPreValidationDefinitionBuilder<T, TExternalResources>> preValidationRuleCreator,
         Action<ICoreValidationDefinitionBuilder<T, TExternalResources>> ruleCreator)
@@ -62,7 +62,7 @@ internal static class InternalCache
                 : myAttribute.ValidatorName;
 
                 // Create an instance of the builder, which will gather the rules
-                ExpressValidatorCoreBuilder<T, TExternalResources> builder = new(name);
+                CustomValidatorCoreBuilder<T, TExternalResources> builder = new(name);
                 action.preValidationRuleCreator(builder); // Call the pre-validation rule creator
                 action.ruleCreator(builder); // Call the main rule creator
                 return builder.CreateValidatorCore(); // Return the compiled validator core
@@ -71,7 +71,7 @@ internal static class InternalCache
 
         // Cast the generic ValidatorCore to the specific ExpressValidatorCore type.
         // This cast is safe because the Lazy<ValidatorCore> will contain an ExpressValidatorCore.
-        return (ExpressValidatorCore<T, TExternalResources>)validationCore.Value;
+        return (CustomValidatorCore<T, TExternalResources>)validationCore.Value;
     }
 
     /// <summary>

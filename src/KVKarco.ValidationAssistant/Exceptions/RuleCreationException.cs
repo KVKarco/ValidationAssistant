@@ -1,4 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Internal;
+using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using KVKarco.ValidationAssistant.Internal.Utilities;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;

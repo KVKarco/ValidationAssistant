@@ -1,5 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Internal;
+using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 namespace KVKarco.ValidationAssistant.ValidationRules;
 
@@ -13,7 +14,7 @@ namespace KVKarco.ValidationAssistant.ValidationRules;
 /// <typeparam name="TExternalResources">The type representing any external resources required during validation.</typeparam>
 /// <typeparam name="TProperty">The type of the property being validated by this rule.</typeparam>
 public abstract class CustomAsyncValidationRule<T, TExternalResources, TProperty> :
-    ValidationRule<T, TExternalResources, TProperty>,
+    ValidationComponent<T, TExternalResources, TProperty>,
     IAsyncValidationRule<T, TExternalResources, TProperty> // Implements the asynchronous contract
 {
     /// <summary>
@@ -35,7 +36,7 @@ public abstract class CustomAsyncValidationRule<T, TExternalResources, TProperty
 
     /// <summary>
     /// <inheritdoc/>
-    /// Overrides the internal <see cref="ValidationRule{T, TExternalResources, TProperty}.Validate"/> method.
+    /// Overrides the internal <see cref="ValidationComponent{T, TExternalResources, TProperty}.Validate"/> method.
     /// For asynchronous custom rules, calling this synchronous method is considered an error
     /// and will force the validation process to stop with a specific failure indicating
     /// that an asynchronous rule was invoked synchronously.
@@ -55,7 +56,7 @@ public abstract class CustomAsyncValidationRule<T, TExternalResources, TProperty
 
     /// <summary>
     /// <inheritdoc/>
-    /// Overrides the internal <see cref="ValidationRule{T, TExternalResources, TProperty}.ValidateAsync"/> method to provide
+    /// Overrides the internal <see cref="ValidationComponent{T, TExternalResources, TProperty}.ValidateAsync"/> method to provide
     /// the concrete asynchronous execution flow for custom rules. It checks for missing property values
     /// and then delegates to the abstract <see cref="IsValidAsync(IValidationCtx{T, TExternalResources}, TProperty, CancellationToken)"/> method.
     /// If <see cref="IsValidAsync"/> returns <c>false</c>, a validation failure is added to the context.
@@ -86,3 +87,5 @@ public abstract class CustomAsyncValidationRule<T, TExternalResources, TProperty
         }
     }
 }
+
+

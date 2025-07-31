@@ -1,5 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
+using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 using KVKarco.ValidationAssistant.Internal.PreValidation;
 using KVKarco.ValidationAssistant.Internal.ValidationFlow;
 using System.Linq.Expressions;
@@ -14,31 +14,31 @@ public class ExpressValidatorCoreBuilderTests
     public ExpressValidatorCoreBuilderTests()
     {
         // Reset global defaults if any test changes them
-        ValidatorsConfig.GlobalDefaults.OnRuleFailure = RuleFailureStrategy.Continue;
-        ValidatorsConfig.GlobalDefaults.OnComponentFailure = ComponentFailureStrategy.Continue;
+        ValidatorsConfig.GlobalDefaults.OnRuleFailure = ValidatorFlow.Continue;
+        ValidatorsConfig.GlobalDefaults.OnComponentFailure = RuleSetFlow.Continue;
     }
 
     [Fact]
     public void Constructor_InitializesCorrectly_WithDefaults()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.Equal(ValidatorName, validationCore.ValidatorName);
         Assert.Null(validationCore.SnapShots);
         Assert.Empty(validationCore.PreValidationRules);
-        Assert.Empty(validationCore.ValidationRules);
+        Assert.Empty(validationCore.Components);
 
         Assert.Equal(ValidatorsConfig.GlobalDefaults.OnRuleFailure, builder.RuleFailureStrategy);
         Assert.Equal(ValidatorsConfig.GlobalDefaults.OnComponentFailure, builder.RuleComponentsFailureStrategy);
     }
 
     [Theory]
-    [InlineData(RuleFailureStrategy.Stop, ComponentFailureStrategy.Exit)]
-    [InlineData(RuleFailureStrategy.Continue, ComponentFailureStrategy.Stop)]
-    public void DefaultStrategies_CanBeSet(RuleFailureStrategy ruleStrategy, ComponentFailureStrategy componentStrategy)
+    [InlineData(ValidatorFlow.Stop, RuleSetFlow.Exit)]
+    [InlineData(ValidatorFlow.Continue, RuleSetFlow.Stop)]
+    public void DefaultStrategies_CanBeSet(ValidatorFlow ruleStrategy, RuleSetFlow componentStrategy)
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
 
         builder.DefaultRuleFailureStrategy(ruleStrategy);
         builder.DefaultComponentFailureStrategy(componentStrategy);
@@ -50,14 +50,14 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void Ensure_AddsSynchronousMainInstancePreValidationRule()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         PreValidationPredicate<TestModel> predicate = (m) => true;
         string explanation = "Initial check failed.";
         int lineNumber = 100;
 
         builder.Ensure(predicate, explanation, lineNumber);
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.Single(validationCore.PreValidationRules);
         var rule = Assert.IsType<MainInstancePreValidationRule<TestModel, TestResources>>(validationCore.PreValidationRules[0]);
@@ -68,13 +68,13 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void EnsureAsync_AddsAsynchronousMainInstancePreValidationRule()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncPreValidationPredicate<TestModel> predicate = (m, ct) => Task.FromResult(true);
         int lineNumber = 200;
 
         builder.EnsureAsync(predicate, null, lineNumber);
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.Single(validationCore.PreValidationRules);
         var rule = Assert.IsType<MainInstancePreValidationRule<TestModel, TestResources>>(validationCore.PreValidationRules[0]);
@@ -85,14 +85,14 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void EnsureResources_AddsSynchronousResourcesPreValidationRule()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         PreValidationPredicate<TestResources> predicate = (m) => true;
         string explanation = "Initial check failed.";
         int lineNumber = 100;
 
         builder.EnsureResources(predicate, explanation, lineNumber);
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.Single(validationCore.PreValidationRules);
         var rule = Assert.IsType<ResourcesPreValidationRule<TestModel, TestResources>>(validationCore.PreValidationRules[0]);
@@ -103,14 +103,14 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void EnsureResources_AddsAsynchronousResourcesPreValidationRule()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncPreValidationPredicate<TestResources> predicate = (m, ct) => Task.FromResult(true);
         string explanation = "Initial check failed.";
         int lineNumber = 100;
 
         builder.EnsureResourcesAsync(predicate, explanation, lineNumber);
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.Single(validationCore.PreValidationRules);
         var rule = Assert.IsType<ResourcesPreValidationRule<TestModel, TestResources>>(validationCore.PreValidationRules[0]);
@@ -121,7 +121,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void Ensure_ThrowsRuleCreationException_WhenMainInstancePredicateIsNull()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         PreValidationPredicate<TestModel> nullPredicate = null!;
 
         var exception = Assert.Throws<RuleCreationException>(() => builder.Ensure(nullPredicate));
@@ -131,7 +131,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void Ensure_ThrowsRuleCreationException_WhenMainInstanceAsyncPredicateIsNull()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncPreValidationPredicate<TestModel> nullPredicate = null!;
 
         var exception = Assert.Throws<RuleCreationException>(() => builder.EnsureAsync(nullPredicate));
@@ -141,7 +141,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void Ensure_ThrowsRuleCreationException_WhenResourcesPredicateIsNull()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         PreValidationPredicate<TestResources> nullPredicate = null!;
 
         var exception = Assert.Throws<RuleCreationException>(() => builder.EnsureResources(nullPredicate));
@@ -151,7 +151,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void Ensure_ThrowsRuleCreationException_WhenResourcesAsyncPredicateIsNull()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncPreValidationPredicate<TestResources> nullPredicate = null!;
 
         var exception = Assert.Throws<RuleCreationException>(() => builder.EnsureResourcesAsync(nullPredicate));
@@ -161,22 +161,22 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void UseFor_CreatesNewPropertyRuleBuilderAndSetsRuleToBeAdded()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         Expression<Func<TestModel, string>> propertySelector = m => m.MyProperty;
         int lineNumber = 100;
         var propertyRuleBuilder = builder.UseFor(propertySelector, lineNumber).Ensure(x => x.Contains('a'));
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.NotNull(propertyRuleBuilder);
-        Assert.Single(validationCore.ValidationRules);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[0]);
+        Assert.Single(validationCore.Components);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[0]);
     }
 
     [Fact]
     public void CallingUseForTwoTimes_ResolvesAndSetsRulesCorrectly()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         Expression<Func<TestModel, string>> propertySelector1 = m => m.MyProperty;
         Expression<Func<TestModel, int>> propertySelector2 = m => m.MyIntProperty;
         int lineNumber1 = 100;
@@ -185,19 +185,19 @@ public class ExpressValidatorCoreBuilderTests
         var propertyRuleBuilder1 = builder.UseFor(propertySelector1, lineNumber1).Ensure(x => x.Contains('a'));
         var propertyRuleBuilder2 = builder.UseFor(propertySelector2, lineNumber2).Ensure(x => x > 4);
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         Assert.NotNull(propertyRuleBuilder1);
         Assert.NotNull(propertyRuleBuilder2);
-        Assert.Equal(2, validationCore.ValidationRules.Length);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[0]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[1]);
+        Assert.Equal(2, validationCore.Components.Length);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[0]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[1]);
     }
 
     [Fact]
     public void UseWhen_AddsConditionalFlowRuleAndExecutesAction_AndTheConditionalRule_HasCorrectSkipCount()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         ValidationCondition<TestModel, TestResources> condition = (ctx) => true;
         int lineNumber = 500;
 
@@ -213,18 +213,18 @@ public class ExpressValidatorCoreBuilderTests
         }, lineNumber);
 
         // 3. Then we create validation core
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         // 4. Then we need to check if the ValidationRules length is 5, and none of the rules inside are null.
         // Expected rules order: [PropertyRule1, PropertyRule2, ConditionalRule, InnerPropertyRule1, InnerPropertyRule2]
-        Assert.Equal(5, validationCore.ValidationRules.Length);
-        foreach (var rule in validationCore.ValidationRules)
+        Assert.Equal(5, validationCore.Components.Length);
+        foreach (var rule in validationCore.Components)
         {
             Assert.NotNull(rule);
         }
 
         // 5. Then we need to check if the Conditional flow rule is on index 2
-        var conditionalRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[2]);
+        var conditionalRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[2]);
 
         // 6. And is of type ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>> (already asserted)
 
@@ -241,7 +241,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void UseWhenAsync_AddsConditionalFlowRuleAndExecutesAction_AndTheConditionalRule_HasCorrectSkipCount()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncValidationCondition<TestModel, TestResources> condition = (ctx, ct) => Task.FromResult(true);
         int lineNumber = 600;
 
@@ -257,17 +257,17 @@ public class ExpressValidatorCoreBuilderTests
         }, lineNumber);
 
         // 3. Then we create validation core
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         // 4. Then we need to check if the ValidationRules length is 5, and none of the rules inside are null.
-        Assert.Equal(5, validationCore.ValidationRules.Length);
-        foreach (var rule in validationCore.ValidationRules)
+        Assert.Equal(5, validationCore.Components.Length);
+        foreach (var rule in validationCore.Components)
         {
             Assert.NotNull(rule);
         }
 
         // 5. Then we need to check if the Conditional flow rule is on index 2
-        var conditionalRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[2]);
+        var conditionalRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[2]);
 
         // 6. And the RulesToSkip is 2
         Assert.Equal(2, conditionalRule.RulesToSkip);
@@ -282,7 +282,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void OtherwiseUse_AddsConditionalFlowRule_AndSecondConditionalFlowRuleAndExecutesAction_AndBothTheConditionalRule_HasCorrectSkipCount()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         ValidationCondition<TestModel, TestResources> whenCondition = (ctx) => true;
         int whenLineNumber = 500;
         int otherwiseLineNumber = 700;
@@ -305,24 +305,24 @@ public class ExpressValidatorCoreBuilderTests
         // Rule B (outside)
         builder.UseFor(m => m.MyProperty, 5).Ensure(x => x.Length > 1); // Rule 5
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         // Expected rules: [RuleA, ConditionalRule1, InnerRuleA, ConditionalRule2, InnerRuleB, InnerRuleC, RuleB]
-        Assert.Equal(7, validationCore.ValidationRules.Length);
-        foreach (var rule in validationCore.ValidationRules)
+        Assert.Equal(7, validationCore.Components.Length);
+        foreach (var rule in validationCore.Components)
         {
             Assert.NotNull(rule);
         }
 
         // Assert ConditionalRule1 (from UseWhen)
-        var conditionalRule1 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[1]);
+        var conditionalRule1 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[1]);
         Assert.Equal(1, conditionalRule1.RulesToSkip);
         Assert.False(conditionalRule1.IsOtherwise);
         Assert.True(conditionalRule1.CanRunSynchronously);
         Assert.Equal(whenCondition, conditionalRule1.Condition);
 
         // Assert ConditionalRule2 (from OtherwiseUse)
-        var conditionalRule2 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[3]);
+        var conditionalRule2 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[3]);
         Assert.Equal(2, conditionalRule2.RulesToSkip);
         Assert.True(conditionalRule2.IsOtherwise);
         Assert.True(conditionalRule2.CanRunSynchronously);
@@ -332,7 +332,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void OtherwiseUseAsync_AddsConditionalFlowRule_AndSecondConditionalFlowRuleAndExecutesAction_AndBothTheConditionalRule_HasCorrectSkipCount()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncValidationCondition<TestModel, TestResources> whenConditionAsync = (ctx, ct) => Task.FromResult(true);
         int whenLineNumber = 600;
         int otherwiseLineNumber = 800;
@@ -356,24 +356,24 @@ public class ExpressValidatorCoreBuilderTests
         // Rule B (outside)
         builder.UseFor(m => m.MyProperty, 5).Ensure(x => x.Length > 1); // Rule 5
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         // Expected rules: [RuleA, ConditionalRule1, InnerRuleA, ConditionalRule2, InnerRuleB, InnerRuleC, RuleB]
-        Assert.Equal(7, validationCore.ValidationRules.Length);
-        foreach (var rule in validationCore.ValidationRules)
+        Assert.Equal(7, validationCore.Components.Length);
+        foreach (var rule in validationCore.Components)
         {
             Assert.NotNull(rule);
         }
 
         // Assert ConditionalRule1 (from UseWhenAsync)
-        var conditionalRule1 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[1]);
+        var conditionalRule1 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[1]);
         Assert.Equal(1, conditionalRule1.RulesToSkip);
         Assert.False(conditionalRule1.IsOtherwise);
         Assert.False(conditionalRule1.CanRunSynchronously);
         Assert.Equal(whenConditionAsync, conditionalRule1.AsyncCondition);
 
         // Assert ConditionalRule2 (from OtherwiseUseAsync)
-        var conditionalRule2 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[3]);
+        var conditionalRule2 = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[3]);
         Assert.Equal(2, conditionalRule2.RulesToSkip);
         Assert.True(conditionalRule2.IsOtherwise);
         Assert.False(conditionalRule2.CanRunSynchronously);
@@ -383,7 +383,7 @@ public class ExpressValidatorCoreBuilderTests
     [Fact]
     public void NestedConditionalFlowRules_ResolveCorrectly_AndAllHaveTheCorrectSkipCount()
     {
-        var builder = new ExpressValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
+        var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         ValidationCondition<TestModel, TestResources> outerCondition = (ctx) => true;
         ValidationCondition<TestModel, TestResources> innerCondition = (ctx) => true; // Using the same innerCondition for simplicity
 
@@ -441,7 +441,7 @@ public class ExpressValidatorCoreBuilderTests
         // Rule 20 (outside all conditionals, at the very end)
         builder.UseFor(m => m.MyProperty).Ensure(x => x.Length > 2);
 
-        var validationCore = (ExpressValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
+        var validationCore = (CustomValidatorCore<TestModel, TestResources>)builder.CreateValidatorCore();
 
         // Total Expected Rules: 21 (1 initial + 1 (OuterWhen) + 1 (Rule2) + 1 (InnerWhen) + 2 (InnerWhen rules) + 1 (InnerOtherwise) + 3 (InnerOtherwise rules) + 1 (Rule10) + 1 (OuterOtherwise) + 2 (OuterOtherwise rules) + 1 (InnerWhen) + 1 (InnerWhen rule) + 1 (InnerOtherwise) + 2 (InnerOtherwise rules) + 1 (Rule19) + 1 (FinalRule))
         // Let's count them carefully:
@@ -467,47 +467,47 @@ public class ExpressValidatorCoreBuilderTests
         // Rule 19 (PropertyRule)
         // Rule 20 (PropertyRule)
 
-        Assert.Equal(21, validationCore.ValidationRules.Length);
+        Assert.Equal(21, validationCore.Components.Length);
 
         // Verify no null rules
-        foreach (var rule in validationCore.ValidationRules)
+        foreach (var rule in validationCore.Components)
         {
             Assert.NotNull(rule);
         }
 
         // --- Assertions for Rule Types and Indices ---
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[0]); // Rule 0
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[0]); // Rule 0
 
         // Outer UseWhen Conditional Block (Index 1)
-        var outerUseWhenRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[1]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[2]);    // Rule 2
+        var outerUseWhenRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[1]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[2]);    // Rule 2
 
         // Nested UseWhen/OtherwiseUse within Outer UseWhen (Index 3 and 6)
-        var innerUseWhenRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[3]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[4]); // Rule 4
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[5]);    // Rule 5
-        var innerOtherwiseUseRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[6]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[7]); // Rule 7
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[8]);    // Rule 8
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[9]); // Rule 9
+        var innerUseWhenRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[3]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[4]); // Rule 4
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[5]);    // Rule 5
+        var innerOtherwiseUseRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[6]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[7]); // Rule 7
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[8]);    // Rule 8
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[9]); // Rule 9
 
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[10]); // Rule 10
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[10]); // Rule 10
 
         // Outer OtherwiseUse Conditional Block (Index 11)
-        var outerOtherwiseUseRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[11]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[12]); // Rule 12
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[13]);    // Rule 13
+        var outerOtherwiseUseRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[11]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[12]); // Rule 12
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[13]);    // Rule 13
 
         // Nested UseWhen/OtherwiseUse within Outer OtherwiseUse (Index 14 and 16)
-        var innerUseWhenOtherwiseBranchRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[14]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[15]); // Rule 15
-        var innerOtherwiseOtherwiseBranchRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, ExpressValidatorRunCtx<TestModel, TestResources>>>(validationCore.ValidationRules[16]);
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[17]);    // Rule 17
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[18]); // Rule 18
+        var innerUseWhenOtherwiseBranchRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[14]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[15]); // Rule 15
+        var innerOtherwiseOtherwiseBranchRule = Assert.IsType<ConditionalFlowValidatorRule<TestModel, TestResources, CustomValidatorRunCtx<TestModel, TestResources>>>(validationCore.Components[16]);
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[17]);    // Rule 17
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[18]); // Rule 18
 
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.ValidationRules[19]);    // Rule 19
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, int>>(validationCore.Components[19]);    // Rule 19
 
-        Assert.IsType<ExpressValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.ValidationRules[20]); // Rule 20
+        Assert.IsType<CustomValidatorPropertyRule<TestModel, TestResources, string>>(validationCore.Components[20]); // Rule 20
 
         // --- Checks for Predicates, IsOtherwise, CanRunSynchronously, and RulesToSkip ---
 

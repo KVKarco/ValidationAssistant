@@ -1,4 +1,6 @@
-﻿namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+
+namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
 /// <summary>
 /// Represents the abstract base class for a property context. This class encapsulates

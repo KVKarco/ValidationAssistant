@@ -1,184 +1,51 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
-using KVKarco.ValidationAssistant.Internal.PreValidation;
-using KVKarco.ValidationAssistant.Internal.PropertyValidation;
-using KVKarco.ValidationAssistant.Internal.ValidationFlow;
+using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace KVKarco.ValidationAssistant.Internal;
 
-/// <summary>
-/// Represents the abstract base class for a validator's execution context.
-/// This context holds state and provides utilities during a validation run,
-/// allowing validators to track progress, access culture information,
-/// and manage validation results and failures.
-/// </summary>
-public abstract class ValidatorRunCtx
+internal abstract class ValidatorRunCtx
 {
-    /// <summary>
-    /// Stores the name or identifier of the validator from which this context originated.
-    /// </summary>
-    private protected readonly string _fromValidator;
+    protected readonly string _validatorName;
 
-    /// <summary>
-    /// Stores information about the most recent rule failure encountered during the validation run.
-    /// This is used to track the specific <see cref="RuleFailure"/> instance.
-    /// </summary>
-    private protected RuleFailure? _currentRuleFailure;
+    private readonly (string identifaer, bool? isValid)[]? _availableSnapShots;
 
+    protected int _totalFailures;
 
-    /// <summary>
-    /// Stores metadata about for the most recent property rule if there is components failures 
-    /// to be use as _currentRuleFailureInfo.
-    /// </summary>
-    private protected RuleFailureInfo? _currentPropertyFailureInfoBackUp;
+    protected FlowEffect? _onValidatorFlowImpact;
 
-    /// <summary>
-    /// Stores metadata about the configuration of the most recent rule failure.
-    /// This includes strategy for stopping or exiting rules.
-    /// </summary>
-    //private protected RuleFailureInfo? _currentRuleFailureInfo;
+    protected int _componentsToSkip;
 
-    /// <summary>
-    /// Stores metadata about the configuration of the most recent validation failure
-    /// that applies to a specific property.
-    /// </summary>
-    private protected ValidationRuleFailureInfo? _currentValidationFailureInfo;
+    protected ValidatorComponentLog? _executionLog;
 
-    /// <summary>
-    /// Tracks the total count of validation failures accumulated during the entire validation run.
-    /// </summary>
-    private protected int _totalValidationFailures;
+    protected FlowEffect? _onPropertyValidatorFlowImpact;
 
-    /// <summary>
-    /// Tracks the count of failures for the currently executing property rule.
-    /// </summary>
-    private protected int _currentPropertyRuleFailures;
+    protected int _componentFailures;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ValidatorRunCtx"/> class.
-    /// This constructor sets up the foundational context for a validation run.
-    /// </summary>
-    /// <param name="fromValidator">The name or identifier of the validator initiating this context.</param>
-    /// <param name="culture">The <see cref="CultureInfo"/> to be used for validation, especially for message formatting.</param>
-    /// <param name="parentContext">An optional reference to a parent <see cref="ValidatorRunCtx"/> for nested validations.</param>
-    /// <param name="result">The <see cref="ValidatorRunResult"/> instance where validation outcomes will be recorded.</param>
-    private protected ValidatorRunCtx(string fromValidator, CultureInfo culture, ValidatorRunCtx? parentContext, ValidatorRunResult result)
+    protected ValidatorRunCtx(
+        string fromValidator,
+        CultureInfo culture,
+        ValidatorRunCtx? parentContext,
+        ValidatorRunResult result,
+        ImmutableArray<string>? availableSnapShots)
     {
-        _fromValidator = fromValidator;
+        _validatorName = fromValidator;
         Culture = culture;
         ParentContext = parentContext;
         Result = result;
 
-        _totalValidationFailures = 0;
-        _currentPropertyRuleFailures = 0;
-    }
+        _totalFailures = 0;
+        _componentFailures = 0;
 
-    /// <summary>
-    /// Gets the <see cref="CultureInfo"/> associated with the current validation run.
-    /// </summary>
-    public CultureInfo Culture { get; }
+        _onValidatorFlowImpact = FlowEffect.Proceed;
 
-    /// <summary>
-    /// Gets the name of the property currently being validated as a read-only span of characters.
-    /// This property must be implemented by derived classes.
-    /// </summary>
-    public abstract ReadOnlySpan<char> PropertyName { get; }
+        _onPropertyValidatorFlowImpact = FlowEffect.Proceed;
 
-    /// <summary>
-    /// Gets an optional reference to the parent validation context if this is a nested validation run.
-    /// </summary>
-    internal ValidatorRunCtx? ParentContext { get; }
+        _componentsToSkip = 0;
 
-    /// <summary>
-    /// Gets the <see cref="ValidatorRunResult"/> where all validation successes and failures are aggregated.
-    /// </summary>
-    internal ValidatorRunResult Result { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the overall validation run is currently considered valid (i.e., no total failures recorded).
-    /// </summary>
-    internal bool IsRunValid => _totalValidationFailures == 0;
-
-    /// <summary>
-    /// Gets the correct or full path of the property currently being validated within the object graph.
-    /// This property must be implemented by derived classes.
-    /// </summary>
-    internal abstract string CorrectPropertyPath { get; }
-
-    /// <summary>
-    /// Factory method to create a new <see cref="ExpressValidatorRunCtx{T, TExternalResources}"/> for a fresh validation run
-    /// initiated by an <see cref="ExpressValidatorCore{T, TExternalResources}"/>.
-    /// This method is intended to be used by the validator's public <c>Validate</c> and <c>ValidateAsync</c> methods.
-    /// </summary>
-    /// <typeparam name="T">The type of the main instance to be validated.</typeparam>
-    /// <typeparam name="TExternalResources">The type of external resources for the validator.</typeparam>
-    /// <param name="core">The compiled validator core instance, which provides snapshots and rules.</param>
-    /// <param name="value">The main instance to be validated.</param>
-    /// <param name="resources">The external resources.</param>
-    /// <param name="culture">Optional. The culture for messages. Defaults to <see cref="ValidatorsConfig.GlobalDefaults.DefaultCulture"/>.</param>
-    /// <returns>A new instance of <see cref="ExpressValidatorRunCtx{T, TExternalResources}"/> initialized for a new validation run.</returns>
-    internal static ExpressValidatorRunCtx<T, TExternalResources> ForNewValidatorCoreRun<T, TExternalResources>(
-        ExpressValidatorCore<T, TExternalResources> core,
-         T value, // Can be null, e.g., for root instance null checks.,
-        TExternalResources resources,
-        CultureInfo? culture)
-    {
-        return new ExpressValidatorRunCtx<T, TExternalResources>(
-            core.ValidatorName,
-            value,
-            resources,
-            core.SnapShots,
-            culture ?? ValidatorsConfig.GlobalDefaults.DefaultCulture,
-            null,
-            null);
-    }
-}
-
-/// <summary>
-/// Represents the generic base class for a validator's execution context,
-/// providing access to the instance being validated and any external resources.
-/// </summary>
-/// <typeparam name="T">The type of the main instance being validated.</typeparam>
-/// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
-public abstract class ValidatorRunCtx<T, TExternalResources> :
-    ValidatorRunCtx,
-    IConditionCtx<T, TExternalResources>,
-    IMessageCtx<T, TExternalResources>
-{
-    /// <summary>
-    /// Stores the state of available validation snapshots, mapped by their identifier.
-    /// Each tuple contains the snapshot identifier and a nullable boolean indicating its validity.
-    /// A null value means the snapshot result has not yet been calculated.
-    /// </summary>
-    private readonly (string identifaer, bool? isValid)[]? _availableSnapShots;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ValidatorRunCtx{T, TExternalResources}"/> class.
-    /// This constructor sets up the context with the specific validation instance and resources.
-    /// </summary>
-    /// <param name="availableSnapShots">An optional immutable array of snapshot identifiers that this validator expects to capture.
-    /// Each identified snapshot's validity will initially be set to null.</param>
-    /// <param name="value">The instance of <typeparamref name="T"/> currently being validated.</param>
-    /// <param name="resources">The external resources of type <typeparamref name="TExternalResources"/> available during validation.</param>
-    /// <param name="fromValidator">The name or identifier of the validator initiating this context.</param>
-    /// <param name="culture">The <see cref="CultureInfo"/> to be used for validation.</param>
-    /// <param name="parentContext">An optional reference to a parent <see cref="ValidatorRunCtx"/> for nested validations.</param>
-    /// <param name="result">The <see cref="ValidatorRunResult"/> instance where validation outcomes will be recorded.</param>
-    private protected ValidatorRunCtx(
-        ImmutableArray<string>? availableSnapShots,
-        T value,
-        TExternalResources resources,
-        string fromValidator,
-        CultureInfo culture,
-        ValidatorRunCtx? parentContext,
-        ValidatorRunResult result)
-        : base(fromValidator, culture, parentContext, result)
-    {
-        if (availableSnapShots is not null)
+        if (availableSnapShots.HasValue)
         {
             _availableSnapShots = new (string, bool?)[availableSnapShots.Value.Length];
 
@@ -187,252 +54,57 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
                 _availableSnapShots[i] = (availableSnapShots.Value[i], null);
             }
         }
-
-        ValidationInstance = value!;
-        Resources = resources;
     }
 
-    /// <summary>
-    /// Gets the main instance of type <typeparamref name="T"/> currently undergoing validation.
-    /// </summary>
-    public T ValidationInstance { get; }
+    public ValidatorRunResult Result { get; }
 
-    /// <summary>
-    /// Gets the external resources of type <typeparamref name="TExternalResources"/> available for the current validation run.
-    /// </summary>
-    public TExternalResources Resources { get; }
+    public CultureInfo Culture { get; }
 
-    /// <summary>
-    /// Determines whether the current property rule execution should be exited based on the
-    /// <see cref="ComponentFailureStrategy"/> of the current validation failure.
-    /// </summary>
-    /// <returns><see langword="true"/> if the property rule should exit; otherwise, <see langword="false"/>.</returns>
-    internal bool ToExitPropertyRule()
-    {
-        return Result.IsValidationRunForceStopped || _currentValidationFailureInfo is not null
-               && (_currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop
-                   || _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Exit);
-    }
+    public ValidatorRunCtx? ParentContext { get; }
 
-    /// <summary>
-    /// Determines whether the entire validation process should stop based on the
-    /// <see cref="RuleFailureStrategy"/> of the current rule failure or the
-    /// <see cref="ComponentFailureStrategy"/> of the current validation failure.
-    /// </summary>
-    /// <returns><see langword="true"/> if the validation should stop entirely; otherwise, <see langword="false"/>.</returns>
-    /// <exception cref="ValidationAssistantInternalException">
-    /// Thrown if <see cref="_currentRuleFailureInfo"/> or <see cref="_currentValidationFailureInfo"/> are unexpectedly null.
-    /// This indicates an internal logic error within the validation assistant.
-    /// </exception>
-    internal bool ToStopValidation()
-    {
-        return Result.IsValidationRunForceStopped || _currentRuleFailure is not null && (_currentRuleFailure.Info.Strategy == RuleFailureStrategy.Stop
-            || (_currentValidationFailureInfo is not null && _currentValidationFailureInfo.Strategy == ComponentFailureStrategy.Stop));
-    }
+    public abstract ReadOnlySpan<char> PropertyName { get; }
 
-    /// <summary>
-    /// Calculates the index for the next rule to be executed, potentially skipping rules
-    /// if the current rule failure dictates a "logical rule" skip.
-    /// </summary>
-    /// <param name="currentIndex">The current index of the rule being processed.</param>
-    /// <returns>The index of the next rule to process.</returns>
-    /// <exception cref="ValidationAssistantInternalException">
-    /// Thrown if <see cref="_currentRuleFailureInfo"/> is unexpectedly null when calculating the next index.
-    /// This indicates an internal logic error.
-    /// </exception>
-    internal int CalculateNextIndex(int currentIndex)
-    {
-        if (_currentRuleFailure is null)
-        {
-            return currentIndex + 1; // No failure, proceed to the next rule
-        }
+    public abstract string CorrectPropertyPath { get; }
 
-        // If rules should be skipped due to a logical rule failure, calculate the new index
-        // Otherwise, just move to the next rule
-        return _currentRuleFailure.Info.RulesToSkip == 0 ? currentIndex + 1 : currentIndex + _currentRuleFailure.Info.RulesToSkip + 1;
-    }
+    public bool IsRunValid => _totalFailures == 0;
 
-    /// <summary>
-    /// Resets the internal state for processing a new logical rule.
-    /// This typically clears any active rule or validation failure information.
-    /// </summary>
-    internal virtual void ForLogicalRule()
-    {
-        _currentRuleFailure = null;
-        _currentPropertyFailureInfoBackUp = null;
-        _currentValidationFailureInfo = null;
-        _currentPropertyRuleFailures = 0;
-    }
-
-    /// <summary>
-    /// Adds a failure related to a logical rule to the validation result.
-    /// This populates <see cref="_currentRuleFailure"/> and adds it to the overall <see cref="Result"/>.
-    /// </summary>
-    /// <param name="failureInfo">Information about the logical rule failure, including its explanation factory.</param>
-    internal void AddLogicalRuleFailure(LogicalRuleFailureInfo<T, TExternalResources> failureInfo)
-    {
-        // Create a new LogicalRuleFailure based on the provided info and its explanation
-        _currentRuleFailure = new LogicalRuleFailure(failureInfo, failureInfo.ExplanationFactory(this));
-        Result.AddRuleFailure(_currentRuleFailure); // Add the failure to the main result collection
-    }
-
-    internal void AddValidationRuleFailure<TProperty>(Undefined<TProperty> property, ValidationRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
-    {
-        // Only increment failure counts if the severity is not 'Info'.
-        // 'Info' level failures are typically for reporting/logging and do not indicate a break in validation.
-        if (failureInfo.Severity != FailureSeverity.Info)
-        {
-            _currentPropertyRuleFailures++; // Increment failures for the current property rule
-            _totalValidationFailures++;     // Increment total failures for the entire run
-        }
-
-        _currentValidationFailureInfo = failureInfo; // Update the current validation failure info
-
-        // If there's no current RuleFailure (meaning this is the first failure for a property rule),
-        // create a new PropertyRuleFailure and add it to the result.
-        if (_currentRuleFailure is null)
-        {
-            if (_currentPropertyFailureInfoBackUp is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
-            {
-                // Create a new PropertyRuleFailure using the property, its path, and an explanation
-                _currentRuleFailure = new PropertyRuleFailure<TProperty>(
-                    property, CorrectPropertyPath, info, info.ExplanationFactory(this, property.Value));
-                Result.AddRuleFailure(_currentRuleFailure); // Add this new rule failure to the overall result
-            }
-            else
-            {
-                // Internal error: RuleFailureInfo should be a PropertyRuleFailureInfo at this point
-                throw new ValidationAssistantInternalException("Debug how _currentPropertyFailureInfoBackUp is wrong type or null in AddValidationFailure.");
-            }
-        }
-
-        // Add the specific validation failure (for the property) to the current rule failure
-        _currentRuleFailure.AddValidationFailure(ValidationFailure.ForPropertyComponent(failureInfo, failureInfo.FailureMessageFactory(this, property.Value)));
-    }
-
-    internal void AddPreValidationFailure([NotNull] PreValidationRuleFailureInfo<T, TExternalResources> failureInfo, [NotNull] ValidationFailure validationFailure)
-    {
-        //TODO: change to ResultClear for prevalidation rules.
-        _totalValidationFailures++;
-        _currentRuleFailure = new PreValidationRuleFailure(CorrectPropertyPath, failureInfo, failureInfo.ExplanationFactory(this));
-        _currentRuleFailure.AddValidationFailure(validationFailure);
-        _currentValidationFailureInfo = validationFailure.Info;
-        Result.AddRuleFailure(_currentRuleFailure);
-    }
-
-
-    internal void ForceStopPropertyValueIsMissing<TProperty>(Undefined<TProperty> property)
-    {
-        //TODO : move string messages in config
-        if (_currentPropertyFailureInfoBackUp is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
-        {
-            _totalValidationFailures++;
-            _currentPropertyRuleFailures++;
-            _currentRuleFailure = new PropertyRuleFailure<TProperty>(
-            property,
-            "",
-            info,
-            "Property value cant be extracted validation is stopped with single failure " +
-            "... if desire is for this property rule to be optional wrap the rule in UseWhen and check the parent for null or use ContinueWhen to check if the parent is null."); // Pass property.Value to the explanation factory even if Undefined, as it may be relevant.
-
-            Result.Clear(_currentRuleFailure);
-            _currentRuleFailure.AddValidationFailure(
-                ValidationFailure.ForMissingPropertyValue(this));
-        }
-        else
-        {
-            throw new ValidationAssistantInternalException("Debug how _currentPropertyFailureInfoBackUp is wrong type or null in ForceStopWhenPropertyValueIsMissing.");
-        }
-    }
-
-    internal void ForceStopAsyncValidationRuleCalledSynchronously<TProperty>(Undefined<TProperty> property, ValidationRuleFailureInfo<T, TExternalResources, TProperty> failureInfo)
-    {
-        //TODO : move string messages in config
-        if (_currentPropertyFailureInfoBackUp is PropertyRuleFailureInfo<T, TExternalResources, TProperty> info)
-        {
-            _totalValidationFailures++;
-            _currentPropertyRuleFailures++;
-            _currentRuleFailure = new PropertyRuleFailure<TProperty>(
-            property,
-            "",
-            info,
-            $"""
-            Validation rule:
-            {failureInfo.Title} cant run synchronously.
-            """);
-
-            Result.Clear(_currentRuleFailure);
-            _currentRuleFailure.AddValidationFailure(
-                ValidationFailure.ForAsyncRuleCalledSynch(this));
-        }
-        else
-        {
-            throw new ValidationAssistantInternalException("Debug how _currentPropertyFailureInfoBackUp is wrong type or null in ForceStoValidationRuleCantRunSynchronously.");
-        }
-    }
-
-    /// <summary>
-    /// Calculates the index for the next rule to be executed, potentially skipping rules
-    /// if the current rule failure dictates a "logical rule" skip.
-    /// </summary>
-    /// <param name="currentIndex">The current index of the rule being processed.</param>
-    /// <returns>The index of the next rule to process.</returns>
-    /// <exception cref="ValidationAssistantInternalException">
-    /// Thrown if <see cref="_currentRuleFailureInfo"/> is unexpectedly null when calculating the next index.
-    /// This indicates an internal logic error.
-    /// </exception>
-    internal void CalculateAndAddSnapShotResult(string snapShotIdentifier)
+    public void AttachResultToSnapShot(string snapShot)
     {
         if (_availableSnapShots is null)
         {
-            throw new ValidationRunException($"Validator: {_fromValidator} does not contain any snap shots.");
+
+            throw new ValidationRunException($"Validator: {_validatorName} does not contain any snapshots.");
         }
 
-        int index = Array.FindIndex(_availableSnapShots, s => s.identifaer == snapShotIdentifier);
+        int index = Array.FindIndex(_availableSnapShots, s => s.identifaer == snapShot);
 
         if (index < 0)
         {
-            throw new ValidationRunException($"Snap shot: {snapShotIdentifier} does not exist in validator: {_fromValidator}.");
+            throw new ValidationRunException($"Snapshot: {snapShot} does not exist in validator: {_validatorName}.");
         }
 
         var (identifier, isValid) = _availableSnapShots[index];
 
         if (isValid.HasValue)
         {
-            throw new ValidationRunException($"Snap shot: {snapShotIdentifier} value is already set.");
+            throw new ValidationRunException($"Snap shot: {snapShot} value is already set.");
         }
 
-        _availableSnapShots[index] = (snapShotIdentifier, _currentPropertyRuleFailures == 0);
+        _availableSnapShots[index].isValid = _componentFailures == 0;
     }
 
-    // Suppressing CA1033 because this is an explicit interface implementation,
-    // and the internal method provides the actual logic for internal usage.
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "<Pending>")]
-    bool IConditionCtx<T, TExternalResources>.IsSnapShotValid(string snapShotIdentifier)
-        => IsSnapShotValidInternal(snapShotIdentifier);
-
-    /// <summary>
-    /// Retrieves the validity status of a previously calculated validation snapshot.
-    /// This allows subsequent rules or components to make decisions based on past validation outcomes.
-    /// </summary>
-    /// <param name="snapShotIdentifier">The unique identifier of the snapshot whose validity is to be retrieved.</param>
-    /// <returns><see langword="true"/> if the snapshot was valid (no property rule failures at its capture point); otherwise, <see langword="false"/>.</returns>
-    /// <exception cref="ValidationRunException">
-    /// Thrown if the validator does not support snapshots, if the <paramref name="snapShotIdentifier"/> does not exist,
-    /// or if the snapshot's value has not yet been set.
-    /// </exception>
-    internal bool IsSnapShotValidInternal(string snapShotIdentifier)
+    public bool IsSnapShotValid(string snapShot)
     {
         if (_availableSnapShots is null)
         {
-            throw new ValidationRunException($"Validator: {_fromValidator} does not contain any snap shots.");
+            throw new ValidationRunException($"Validator: {_validatorName} does not contain any snapshots.");
         }
 
-        int index = Array.FindIndex(_availableSnapShots, s => s.identifaer == snapShotIdentifier);
+        int index = Array.FindIndex(_availableSnapShots, s => s.identifaer == snapShot);
 
         if (index < 0)
         {
-            throw new ValidationRunException($"Snap shot: {snapShotIdentifier} does not exist in validator: {_fromValidator}.");
+            throw new ValidationRunException($"Snapshot: {snapShot} does not exist in validator: {_validatorName}.");
         }
 
         bool? isValid = _availableSnapShots[index].isValid;
@@ -442,6 +114,73 @@ public abstract class ValidatorRunCtx<T, TExternalResources> :
             return isValid.Value;
         }
 
-        throw new ValidationRunException($"Snap shot: {snapShotIdentifier} value is not set.");
+        throw new ValidationRunException($"Snapshot: {snapShot} value is not set.");
     }
+
+    public static CustomValidatorRunCtx<T, TExternalResources> ForNewRunAsMainValidator<T, TExternalResources>(
+        CustomValidatorCore<T, TExternalResources> core,
+         T value,
+        TExternalResources resources,
+        CultureInfo? culture)
+    {
+        return new CustomValidatorRunCtx<T, TExternalResources>(
+            core.ValidatorName,
+            value,
+            resources,
+            core.SnapShots,
+            culture ?? ValidatorsConfig.GlobalDefaults.DefaultCulture,
+            null,
+            null);
+    }
+
+    public static CustomValidatorRunCtx<T, TExternalResources> ForNewRunAsChildValidator<T, TExternalResources>(
+        CustomValidatorCore<T, TExternalResources> core,
+        T value,
+        TExternalResources resources,
+        ValidatorRunCtx parentCtx)
+    {
+        return new CustomValidatorRunCtx<T, TExternalResources>(
+            core.ValidatorName,
+            value,
+            resources,
+            core.SnapShots,
+            parentCtx.Culture,
+            parentCtx.Result,
+            parentCtx);
+    }
+}
+
+internal abstract class ValidatorRunCtx<T, TExternalResources> :
+    ValidatorRunCtx,
+    IConditionCtx<T, TExternalResources>,
+    IMessageCtx<T, TExternalResources>
+{
+    protected ValidatorRunCtx(
+        ImmutableArray<string>? availableSnapShots,
+        T value,
+        TExternalResources resources,
+        string fromValidator,
+        CultureInfo culture,
+        ValidatorRunCtx? parentContext,
+        ValidatorRunResult result)
+        : base(fromValidator, culture, parentContext, result, availableSnapShots)
+    {
+        Value = value!;
+        Resources = resources;
+    }
+
+    public T Value { get; }
+
+    public TExternalResources Resources { get; }
+
+    public bool ToStopPropertyValidator() => _executionLog is null
+            ? throw new ValidationAssistantInternalException("Debug how ToStopPropertyValidator is call with null componentLog")
+            : _onPropertyValidatorFlowImpact.HasValue && _onPropertyValidatorFlowImpact == FlowEffect.Stop;
+
+
+    public bool ToStopRun() => _executionLog is null
+            ? throw new ValidationAssistantInternalException("Debug how ToStopRun is call with null componentLog")
+            : _onValidatorFlowImpact.HasValue && _onValidatorFlowImpact == FlowEffect.Stop;
+
+    public int CalculateNextIndex(int currentIndex) => currentIndex + 1 + _componentsToSkip;
 }

@@ -1,4 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
+﻿using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using KVKarco.ValidationAssistant.Internal.Utilities;
 using KVKarco.ValidationAssistant.Tests.Models;
@@ -20,11 +20,11 @@ public class ExpressValidatorPropertyRuleBuilderTests
         var propertyCtx = ExpressionFactory.CreatePropertyCtx<TestUser, string?>(u => u.Name, false, false);
         var snapshots = new List<string>();
 
-        var builder = new ExpressValidatorPropertyRuleBuilder<TestUser, DummyResources, string?>(
+        var builder = new CustomeValidatorPropertyRuleBuilder<TestUser, DummyResources, string?>(
             validatorName: "TestUserValidator",
             propertyCtx: propertyCtx,
-            defaultRuleFailureStrategy: RuleFailureStrategy.Continue,
-            defaultComponentFailureStrategy: ComponentFailureStrategy.Continue,
+            defaultRuleFailureStrategy: ValidatorFlow.Continue,
+            defaultComponentFailureStrategy: RuleSetFlow.Continue,
             declaredOnLine: 123,
             snapShots: snapshots
         );
@@ -32,27 +32,27 @@ public class ExpressValidatorPropertyRuleBuilderTests
         builder
             .Ensure(name => !string.IsNullOrWhiteSpace(name))
                 .WithMessage("Name is required")
-                .OnFailure(ComponentFailureStrategy.Exit)
+                .OnFailure(RuleSetFlow.Exit)
                 .Severity(FailureSeverity.Error)
             .Ensure((ctx, name) => name == null || name.Length <= 50)
                 .WithMessage("Name must be 50 characters or less")
-                .OnFailure(ComponentFailureStrategy.Continue)
+                .OnFailure(RuleSetFlow.Continue)
                 .Severity(FailureSeverity.Warning)
             .EnsureAsync(async (name, ct) => await System.Threading.Tasks.Task.FromResult(name == null || !name.Contains("!")))
                 .WithMessage("Name must not contain exclamation mark")
-                .OnFailure(ComponentFailureStrategy.Continue)
+                .OnFailure(RuleSetFlow.Continue)
                 .Severity(FailureSeverity.Error);
 
         // Act
         var rule = builder.Build();
 
         // Assert
-        var typedRule = Assert.IsType<ExpressValidatorPropertyRule<TestUser, DummyResources, string?>>(rule);
-        Assert.Equal(RuleFailureStrategy.Continue, typedRule.Info.Strategy);
+        var typedRule = Assert.IsType<CustomValidatorPropertyRule<TestUser, DummyResources, string?>>(rule);
+        Assert.Equal(ValidatorFlow.Continue, typedRule.Info.Strategy);
         Assert.Equal(123, typedRule.Info.DeclaredOnLine);
 
         // Use reflection to get the private _ruleComponents field
-        var ruleComponentsField = typeof(ExpressValidatorPropertyRule<TestUser, DummyResources, string?>)
+        var ruleComponentsField = typeof(CustomValidatorPropertyRule<TestUser, DummyResources, string?>)
             .BaseType! // PropertyRule
             .GetField("_ruleComponents", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var components = (System.Collections.IEnumerable)ruleComponentsField!.GetValue(typedRule)!;
@@ -62,21 +62,21 @@ public class ExpressValidatorPropertyRuleBuilderTests
 
         // First component: sync, Exit, Error
         Assert.True(componentList[0].CanRunSynchronously);
-        Assert.Equal(ComponentFailureStrategy.Exit, componentList[0].Info.Strategy);
+        Assert.Equal(RuleSetFlow.Exit, componentList[0].Info.Strategy);
         Assert.Equal(FailureSeverity.Error, componentList[0].Info.Severity);
 
         // Second component: sync, Continue, Warning
         Assert.True(componentList[1].CanRunSynchronously);
-        Assert.Equal(ComponentFailureStrategy.Continue, componentList[1].Info.Strategy);
+        Assert.Equal(RuleSetFlow.Continue, componentList[1].Info.Strategy);
         Assert.Equal(FailureSeverity.Warning, componentList[1].Info.Severity);
 
         // Third component: async, Continue, Error
         Assert.False(componentList[2].CanRunSynchronously);
-        Assert.Equal(ComponentFailureStrategy.Continue, componentList[2].Info.Strategy);
+        Assert.Equal(RuleSetFlow.Continue, componentList[2].Info.Strategy);
         Assert.Equal(FailureSeverity.Error, componentList[2].Info.Severity);
 
         // Prepare a context for message factories
-        var ctx = new ExpressValidatorRunCtx<TestUser, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<TestUser, DummyResources>(
             fromValidator: "TestUserValidator",
             value: new TestUser { Name = "Test" },
             resources: new DummyResources(),

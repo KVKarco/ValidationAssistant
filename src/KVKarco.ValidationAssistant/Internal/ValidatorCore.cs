@@ -1,5 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
+﻿using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 using System.Collections.Immutable;
 
 namespace KVKarco.ValidationAssistant.Internal;
@@ -31,28 +30,26 @@ internal abstract class ValidatorCore
     public ImmutableArray<string>? SnapShots { get; }
 
     /// <summary>
-    /// Factory method to create a concrete <see cref="ExpressValidatorCore{T, TExternalResources}"/> instance.
+    /// Factory method to create a concrete <see cref="CustomValidatorCore{T, TExternalResources}"/> instance.
     /// This method simplifies the creation of the specific validator core type used by ExpressValidator.
     /// </summary>
     /// <typeparam name="T">The type of the main object instance being validated.</typeparam>
     /// <typeparam name="TExternalResources">The type of external resources that can be accessed by the validation rules.</typeparam>
     /// <param name="validatorName">The descriptive name of the validator core.</param>
     /// <param name="snapShots">An optional list of string snapshots.</param>
-    /// <param name="preValidationRules">A list of <see cref="IPreValidationRule{T, TExternalResources}"/> instances.</param>
-    /// <param name="rules">A list of compiled main <see cref="IValidatorRule{T, TExternalResources, ExpressValidatorRunCtx{T, TExternalResources}}"/> instances.</param>
-    /// <returns>A new <see cref="ExpressValidatorCore{T, TExternalResources}"/> instance.</returns>
-    public static ExpressValidatorCore<T, TExternalResources> ForExpressValidator<T, TExternalResources>(
+    /// <param name="components">A list of compiled main <see cref="IValidatorComponent{T, TExternalResources, CustomValidatorRunCtx{T, TExternalResources}}"/> instances.</param>
+    /// <returns>A new <see cref="CustomValidatorCore{T, TExternalResources}"/> instance.</returns>
+    public static CustomValidatorCore<T, TExternalResources> ForExpressValidator<T, TExternalResources>(
         string validatorName,
         List<string>? snapShots,
-        List<IPreValidationRule<T, TExternalResources>> preValidationRules,
-        List<IValidatorRule<T, TExternalResources, ExpressValidatorRunCtx<T, TExternalResources>>> rules)
-        => new(validatorName, snapShots, preValidationRules, rules);
+        List<IValidatorComponent<T, TExternalResources, CustomValidatorRunCtx<T, TExternalResources>>> components)
+        => new(validatorName, snapShots, components);
 }
 
 /// <summary>
 /// Represents the abstract base class for a compiled validator core.
 /// This class holds immutable sets of <see cref="IPreValidationRule{T, TExternalResources}"/> instances
-/// for pre-validation logic and <see cref="IValidatorRule{T, TExternalResources, TContex}"/> instances
+/// for pre-validation logic and <see cref="IValidatorComponent{T, TExternalResources, TContex}"/> instances
 /// for the main validation logic for a specific validator type.
 /// It provides the internal mechanisms for executing these rules synchronously and asynchronously in distinct phases.
 /// </summary>
@@ -69,36 +66,25 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     /// </summary>
     /// <param name="validatorName">The descriptive name of the validator core.</param>
     /// <param name="snapShots">An optional list of string snapshots, potentially used for debugging or capturing rule definitions state.</param>
-    /// <param name="preValidationRules">A list of <see cref="IPreValidationRule{T, TExternalResources}"/> instances
-    /// representing pre-validation checks. This list is converted to an immutable array internally.</param>
-    /// <param name="rules">A list of compiled main <see cref="IValidatorRule{T, TExternalResources, TContex}"/> instances
+    /// <param name="components">A list of compiled main <see cref="IValidatorComponent{T, TExternalResources, TContex}"/> instances
     /// that this core will execute. This list is converted to an immutable array internally.</param>
     protected ValidatorCore(
         string validatorName,
         List<string>? snapShots,
-        List<IPreValidationRule<T, TExternalResources>> preValidationRules,
-        List<IValidatorRule<T, TExternalResources, TContex>> rules)
-        : base(validatorName, !preValidationRules.Exists(x => !x.CanRunSynchronously) && !rules.Exists(x => !x.CanRunSynchronously), snapShots)
+        List<IValidatorComponent<T, TExternalResources, TContex>> components)
+        : base(validatorName, !components.Exists(x => !x.CanRunSynchronously), snapShots)
     {
-        PreValidationRules = [.. preValidationRules];
-        ValidationRules = [.. rules]; // Convert list to immutable array for thread-safety and performance.
+        Components = [.. components]; // Convert list to immutable array for thread-safety and performance.
     }
 
     /// <summary>
-    /// An immutable array containing the pre-validation <see cref="IPreValidationRule{T, TExternalResources}"/> instances.
-    /// These rules are executed first to ensure fundamental conditions are met before main validation.
-    /// </summary>
-    public ImmutableArray<IPreValidationRule<T, TExternalResources>> PreValidationRules { get; }
-
-    /// <summary>
-    /// An immutable array containing all the compiled main <see cref="IValidatorRule{T, TExternalResources, TContex}"/> instances
+    /// An immutable array containing all the compiled main <see cref="IValidatorComponent{T, TExternalResources, TContex}"/> instances
     /// that constitute the primary validation logic for this core.
     /// </summary>
-    public ImmutableArray<IValidatorRule<T, TExternalResources, TContex>> ValidationRules { get; }
+    public ImmutableArray<IValidatorComponent<T, TExternalResources, TContex>> Components { get; }
 
     /// <summary>
-    /// Synchronously executes all compiled pre-validation rules, and if they all pass
-    /// (or do not cause the validation to stop), then proceeds to execute the main validation rules.
+    /// Synchronously executes all compiled validation components.
     /// The execution flow can be controlled by the <paramref name="context"/>, allowing for
     /// short-circuiting or jumping between rules.
     /// </summary>
@@ -106,37 +92,22 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     /// external resources, and state for tracking validation progress and failures.</param>
     public void InternalValidate(TContex context)
     {
-        // --- Execute Pre-Validation Rules ---
-        int preIndex = 0;
-        while (preIndex < PreValidationRules.Length)
-        {
-            PreValidationRules[preIndex].PreValidate(context);
+        int index = 0;
 
-            // If a pre-validation rule causes the validation to stop, immediately return to stop the entire process.
-            if (context.ToStopValidation())
-            {
-                return;
-            }
-            preIndex++;
-        }
-
-        // Reset index for main rules execution
-        int mainIndex = 0;
-
-        // --- Execute Main Validation Rules (only if pre-validation did not stop the process) ---
-        while (mainIndex < ValidationRules.Length)
+        // --- Execute Main Validation Rules
+        while (index < Components.Length)
         {
             // Execute the current main rule's synchronous validation logic.
-            ValidationRules[mainIndex].Validate(context);
+            Components[index].Validate(context);
 
             // Check if the validation context indicates that the entire validation process should stop.
-            if (context.ToStopValidation())
+            if (context.ToStopRun())
             {
                 break; // Exit the loop and stop further validation.
             }
 
             // Calculate the next index based on the context's logic (e.g., for conditional jumps).
-            mainIndex = context.CalculateNextIndex(mainIndex);
+            index = context.CalculateNextIndex(index);
         }
     }
 
@@ -152,41 +123,24 @@ internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous validation operation.</returns>
     public async ValueTask InternalValidateAsync(TContex context, CancellationToken ct)
     {
-        // --- Execute Pre-Validation Rules ---
-        int preIndex = 0;
-        while (preIndex < PreValidationRules.Length)
-        {
-            ct.ThrowIfCancellationRequested(); // Check for cancellation before executing each pre-validation rule.
+        int index = 0;
 
-            await PreValidationRules[preIndex].PreValidateAsync(context, ct).ConfigureAwait(false);
-
-            // If a pre-validation rule causes the validation to stop, immediately return to stop the entire process.
-            if (context.ToStopValidation())
-            {
-                return;
-            }
-            preIndex++;
-        }
-
-        // Reset index for main rules execution
-        int mainIndex = 0;
-
-        // --- Execute Main Validation Rules (only if pre-validation did not stop the process) ---
-        while (mainIndex < ValidationRules.Length)
+        // --- Execute Main Validation Rules 
+        while (index < Components.Length)
         {
             ct.ThrowIfCancellationRequested(); // Check for cancellation before executing each main rule.
 
             // Execute the current main rule's asynchronous validation logic.
-            await ValidationRules[mainIndex].ValidateAsync(context, ct).ConfigureAwait(false);
+            await Components[index].ValidateAsync(context, ct).ConfigureAwait(false);
 
             // Check if a main rule causes the validation to stop.
-            if (context.ToStopValidation())
+            if (context.ToStopRun())
             {
                 break; // Exit the loop and stop further validation.
             }
 
             // Calculate the next index based on the context's logic (e.g., for conditional jumps).
-            mainIndex = context.CalculateNextIndex(mainIndex);
+            index = context.CalculateNextIndex(index);
         }
     }
 }

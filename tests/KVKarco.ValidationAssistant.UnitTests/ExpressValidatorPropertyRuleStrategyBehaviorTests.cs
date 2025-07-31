@@ -1,6 +1,6 @@
 ﻿using KVKarco.ValidationAssistant.Abstractions;
 using KVKarco.ValidationAssistant.Internal;
-using KVKarco.ValidationAssistant.Internal.ExpressValidatorComponents;
+using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 using KVKarco.ValidationAssistant.Internal.PropertyValidation;
 using KVKarco.ValidationAssistant.ValidationRules;
 using System.Globalization;
@@ -41,9 +41,9 @@ public class ExpressValidatorPropertyRuleStrategyBehaviorTests
         }
     }
 
-    private static ExpressValidatorPropertyRule<object, DummyResources, object> CreatePropertyRule(
-        RuleFailureStrategy ruleStrategy,
-        List<(CountingValidationRule rule, ComponentFailureStrategy strategy)> rulesAndStrategies,
+    private static CustomValidatorPropertyRule<object, DummyResources, object> CreatePropertyRule(
+        ValidatorFlow ruleStrategy,
+        List<(CountingValidationRule rule, RuleSetFlow strategy)> rulesAndStrategies,
         string propertyName = "TestProp")
     {
         var propertyCtx = CreatePropertyCtx(propertyName);
@@ -72,28 +72,28 @@ public class ExpressValidatorPropertyRuleStrategyBehaviorTests
         var stopRule = new CountingValidationRule(true);
         var continueRule = new CountingValidationRule(false);
 
-        var firstRule = CreatePropertyRule(RuleFailureStrategy.Continue, new List<(CountingValidationRule, ComponentFailureStrategy)>
+        var firstRule = CreatePropertyRule(ValidatorFlow.Continue, new List<(CountingValidationRule, RuleSetFlow)>
         {
-            (stopRule, ComponentFailureStrategy.Stop),
-            (continueRule, ComponentFailureStrategy.Continue)
+            (stopRule, RuleSetFlow.Stop),
+            (continueRule, RuleSetFlow.Continue)
         });
 
-        var secondRule = CreatePropertyRule(RuleFailureStrategy.Continue, new List<(CountingValidationRule, ComponentFailureStrategy)>
+        var secondRule = CreatePropertyRule(ValidatorFlow.Continue, new List<(CountingValidationRule, RuleSetFlow)>
         {
-            (new CountingValidationRule(false, () => secondRuleRun = true), ComponentFailureStrategy.Continue)
+            (new CountingValidationRule(false, () => secondRuleRun = true), RuleSetFlow.Continue)
         }, propertyName: "SecondProp");
 
-        var core = new ExpressValidatorCore<object, DummyResources>(
+        var core = new CustomValidatorCore<object, DummyResources>(
             "TestValidator",
             null,
             new List<IPreValidationRule<object, DummyResources>>(),
-            new List<IValidatorRule<object, DummyResources, ExpressValidatorRunCtx<object, DummyResources>>>
+            new List<IValidatorComponent<object, DummyResources, CustomValidatorRunCtx<object, DummyResources>>>
             {
                 firstRule,
                 secondRule
             });
 
-        var ctx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<object, DummyResources>(
             "TestValidator", new object(), new DummyResources(), null, CultureInfo.GetCultureInfo("en-US"), null, null);
 
         // Act
@@ -111,27 +111,27 @@ public class ExpressValidatorPropertyRuleStrategyBehaviorTests
     {
         // Arrange
         int componentsRun = 0;
-        var rulesAndStrategies = new List<(CountingValidationRule, ComponentFailureStrategy)>();
+        var rulesAndStrategies = new List<(CountingValidationRule, RuleSetFlow)>();
         for (int i = 0; i < 8; i++)
         {
             if (i == 2)
-                rulesAndStrategies.Add((new CountingValidationRule(true, () => componentsRun++), ComponentFailureStrategy.Exit));
+                rulesAndStrategies.Add((new CountingValidationRule(true, () => componentsRun++), RuleSetFlow.Exit));
             else
-                rulesAndStrategies.Add((new CountingValidationRule(false, () => componentsRun++), ComponentFailureStrategy.Continue));
+                rulesAndStrategies.Add((new CountingValidationRule(false, () => componentsRun++), RuleSetFlow.Continue));
         }
 
-        var propertyRule = CreatePropertyRule(RuleFailureStrategy.Continue, rulesAndStrategies);
+        var propertyRule = CreatePropertyRule(ValidatorFlow.Continue, rulesAndStrategies);
 
-        var core = new ExpressValidatorCore<object, DummyResources>(
+        var core = new CustomValidatorCore<object, DummyResources>(
             "TestValidator",
             null,
             new List<IPreValidationRule<object, DummyResources>>(),
-            new List<IValidatorRule<object, DummyResources, ExpressValidatorRunCtx<object, DummyResources>>>
+            new List<IValidatorComponent<object, DummyResources, CustomValidatorRunCtx<object, DummyResources>>>
             {
                 propertyRule
             });
 
-        var ctx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<object, DummyResources>(
             "TestValidator", new object(), new DummyResources(), null, CultureInfo.GetCultureInfo("en-US"), null, null);
 
         // Act
@@ -153,39 +153,39 @@ public class ExpressValidatorPropertyRuleStrategyBehaviorTests
     public void PropertyRule_With_Stop_Strategy_And_Continue_Components_Stops_Validation_After_Second_PropertyRule()
     {
         // Arrange
-        var rule1Components = new List<(CountingValidationRule, ComponentFailureStrategy)>
+        var rule1Components = new List<(CountingValidationRule, RuleSetFlow)>
         {
-            (new CountingValidationRule(false), ComponentFailureStrategy.Continue)
+            (new CountingValidationRule(false), RuleSetFlow.Continue)
         };
-        var rule2Components = new List<(CountingValidationRule, ComponentFailureStrategy)>();
+        var rule2Components = new List<(CountingValidationRule, RuleSetFlow)>();
         for (int i = 0; i < 7; i++)
         {
             if (i == 4)
-                rule2Components.Add((new CountingValidationRule(true), ComponentFailureStrategy.Continue)); // Only this one fails
+                rule2Components.Add((new CountingValidationRule(true), RuleSetFlow.Continue)); // Only this one fails
             else
-                rule2Components.Add((new CountingValidationRule(false), ComponentFailureStrategy.Continue));
+                rule2Components.Add((new CountingValidationRule(false), RuleSetFlow.Continue));
         }
-        var rule3Components = new List<(CountingValidationRule, ComponentFailureStrategy)>
+        var rule3Components = new List<(CountingValidationRule, RuleSetFlow)>
         {
-            (new CountingValidationRule(false), ComponentFailureStrategy.Continue)
+            (new CountingValidationRule(false), RuleSetFlow.Continue)
         };
 
-        var rule1 = CreatePropertyRule(RuleFailureStrategy.Continue, rule1Components, propertyName: "Rule1Prop");
-        var rule2 = CreatePropertyRule(RuleFailureStrategy.Stop, rule2Components, propertyName: "Rule2Prop");
-        var rule3 = CreatePropertyRule(RuleFailureStrategy.Continue, rule3Components, propertyName: "Rule3Prop");
+        var rule1 = CreatePropertyRule(ValidatorFlow.Continue, rule1Components, propertyName: "Rule1Prop");
+        var rule2 = CreatePropertyRule(ValidatorFlow.Stop, rule2Components, propertyName: "Rule2Prop");
+        var rule3 = CreatePropertyRule(ValidatorFlow.Continue, rule3Components, propertyName: "Rule3Prop");
 
-        var core = new ExpressValidatorCore<object, DummyResources>(
+        var core = new CustomValidatorCore<object, DummyResources>(
             "TestValidator",
             null,
             new List<IPreValidationRule<object, DummyResources>>(),
-            new List<IValidatorRule<object, DummyResources, ExpressValidatorRunCtx<object, DummyResources>>>
+            new List<IValidatorComponent<object, DummyResources, CustomValidatorRunCtx<object, DummyResources>>>
             {
                 rule1,
                 rule2,
                 rule3
             });
 
-        var ctx = new ExpressValidatorRunCtx<object, DummyResources>(
+        var ctx = new CustomValidatorRunCtx<object, DummyResources>(
             "TestValidator", new object(), new DummyResources(), null, CultureInfo.GetCultureInfo("en-US"), null, null);
 
         // Act
