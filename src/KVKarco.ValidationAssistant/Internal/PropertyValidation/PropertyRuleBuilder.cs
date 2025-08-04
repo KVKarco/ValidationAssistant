@@ -1,6 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.GenericValidationRules;
+﻿using KVKarco.ValidationAssistant.Exceptions;
 using KVKarco.ValidationAssistant.ValidationRules;
 using System.Runtime.CompilerServices;
 
@@ -99,12 +97,12 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNullOrWhiteSpaces(snapShotIdentifier);
+        ValidationDefinitionException.ThrowIfNullOrWhiteSpaces(snapShotIdentifier);
 
         // Ensure the snapshot identifier has not been used before in this validator.
         if (_snapShots.Exists(x => x == snapShotIdentifier))
         {
-            throw new RuleCreationException($"SnapShot with identifier {snapShotIdentifier} declared on line : {callingFileLineNumber} already is in use.");
+            throw new ValidationDefinitionException($"SnapShot with identifier {snapShotIdentifier} declared on line : {callingFileLineNumber} already is in use.");
         }
         _snapShots.Add(snapShotIdentifier); // Add the new snapshot to the validator's list.
 
@@ -124,12 +122,12 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNullOrWhiteSpaces(snapShotIdentifier);
+        ValidationDefinitionException.ThrowIfNullOrWhiteSpaces(snapShotIdentifier);
 
         // Ensure the snapshot identifier has been declared at the validator level.
         if (!_snapShots.Contains(snapShotIdentifier))
         {
-            throw new RuleCreationException($"SnapShot with identifier '{snapShotIdentifier}' declared on line: {callingFileLineNumber} is never captured at the validator level. Please ensure it's defined using SnapShot() on the main validator builder.");
+            throw new ValidationDefinitionException($"SnapShot with identifier '{snapShotIdentifier}' declared on line: {callingFileLineNumber} is never captured at the validator level. Please ensure it's defined using SnapShot() on the main validator builder.");
         }
 
         _componentResolver.NextComponent(
@@ -153,7 +151,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(condition);
+        ValidationDefinitionException.ThrowIfNull(condition);
 
         _componentResolver.NextComponent(
             new ConditionalFlowValidationRule<T, TExternalResources, TProperty>(condition),
@@ -176,7 +174,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(asyncCondition);
+        ValidationDefinitionException.ThrowIfNull(asyncCondition);
 
         _componentResolver.NextComponent(
             new ConditionalFlowAsyncValidationRule<T, TExternalResources, TProperty>(asyncCondition),
@@ -202,7 +200,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(predicate);
+        ValidationDefinitionException.ThrowIfNull(predicate);
 
         _componentResolver.NextComponent(new PredicateValidationRule<T, TExternalResources, TProperty>(predicate), callingFileLineNumber);
 
@@ -216,7 +214,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(predicate);
+        ValidationDefinitionException.ThrowIfNull(predicate);
 
         _componentResolver.NextComponent(new ContextAwarePredicateValidationRule<T, TExternalResources, TProperty>(predicate), callingFileLineNumber);
 
@@ -230,7 +228,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(asyncPredicate);
+        ValidationDefinitionException.ThrowIfNull(asyncPredicate);
 
         _componentResolver.NextComponent(new PredicateAsyncValidationRule<T, TExternalResources, TProperty>(asyncPredicate), callingFileLineNumber);
 
@@ -244,7 +242,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(asyncPredicate);
+        ValidationDefinitionException.ThrowIfNull(asyncPredicate);
 
         _componentResolver.NextComponent(new ContextAwarePredicateAsyncValidationRule<T, TExternalResources, TProperty>(asyncPredicate), callingFileLineNumber);
 
@@ -258,7 +256,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(rule);
+        ValidationDefinitionException.ThrowIfNull(rule);
 
         _componentResolver.NextComponent(rule, callingFileLineNumber);
 
@@ -272,7 +270,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
         ResolveLastComponent(); // Resolve any previous component before adding this one.
-        RuleCreationException.ThrowIfNull(asyncRule);
+        ValidationDefinitionException.ThrowIfNull(asyncRule);
 
         _componentResolver.NextComponent(asyncRule, callingFileLineNumber);
 
@@ -304,7 +302,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
     public IValidationComponentFailureOptionsBuilder<T, TExternalResources, TProperty> WithMessage(
         string failureMessage)
     {
-        RuleCreationException.ThrowIfNullOrWhiteSpaces(failureMessage);
+        ValidationDefinitionException.ThrowIfNullOrWhiteSpaces(failureMessage);
         _componentResolver.Override(failureMessage);
         return this;
     }
@@ -313,7 +311,7 @@ internal abstract class PropertyRuleBuilder<T, TExternalResources, TProperty> :
     public IValidationComponentFailureOptionsBuilder<T, TExternalResources, TProperty> WithMessage(
         FailureMessageFactory<T, TExternalResources, TProperty> failureMessageFactory)
     {
-        RuleCreationException.ThrowIfNull(failureMessageFactory);
+        ValidationDefinitionException.ThrowIfNull(failureMessageFactory);
         _componentResolver.Override(failureMessageFactory);
         return this;
     }

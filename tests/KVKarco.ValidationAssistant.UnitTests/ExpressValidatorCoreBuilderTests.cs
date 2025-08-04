@@ -124,7 +124,7 @@ public class ExpressValidatorCoreBuilderTests
         var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         PreValidationPredicate<TestModel> nullPredicate = null!;
 
-        var exception = Assert.Throws<RuleCreationException>(() => builder.Ensure(nullPredicate));
+        var exception = Assert.Throws<ValidationDefinitionException>(() => builder.Ensure(nullPredicate));
         Assert.Contains("predicate", exception.Message);
     }
 
@@ -134,7 +134,7 @@ public class ExpressValidatorCoreBuilderTests
         var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncPreValidationPredicate<TestModel> nullPredicate = null!;
 
-        var exception = Assert.Throws<RuleCreationException>(() => builder.EnsureAsync(nullPredicate));
+        var exception = Assert.Throws<ValidationDefinitionException>(() => builder.EnsureAsync(nullPredicate));
         Assert.Contains("predicate", exception.Message);
     }
 
@@ -144,7 +144,7 @@ public class ExpressValidatorCoreBuilderTests
         var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         PreValidationPredicate<TestResources> nullPredicate = null!;
 
-        var exception = Assert.Throws<RuleCreationException>(() => builder.EnsureResources(nullPredicate));
+        var exception = Assert.Throws<ValidationDefinitionException>(() => builder.EnsureResources(nullPredicate));
         Assert.Contains("predicate", exception.Message);
     }
 
@@ -154,7 +154,7 @@ public class ExpressValidatorCoreBuilderTests
         var builder = new CustomValidatorCoreBuilder<TestModel, TestResources>(ValidatorName);
         AsyncPreValidationPredicate<TestResources> nullPredicate = null!;
 
-        var exception = Assert.Throws<RuleCreationException>(() => builder.EnsureResourcesAsync(nullPredicate));
+        var exception = Assert.Throws<ValidationDefinitionException>(() => builder.EnsureResourcesAsync(nullPredicate));
         Assert.Contains("predicate", exception.Message);
     }
 

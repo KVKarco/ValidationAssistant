@@ -37,14 +37,11 @@ internal static class ExpressionFactory
     ///      <item><term><c>count</c></term><description>The total number of members in the property access chain.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="RuleCreationException">
+    /// <exception cref="ValidationDefinitionException">
     /// Thrown if any part of the expression body is not a valid member or property access expression.
     /// </exception>
     public static (MemberInfo info, int count) GetFirstMemberInChainAndCount(LambdaExpression lambdaExpression)
     {
-        // Validate the property selector expression.
-        RuleCreationException.ThrowIfInvalidSelector(lambdaExpression);
-
         MemberExpression? member = lambdaExpression.Body as MemberExpression;
         MemberInfo memberInfo = null!; // Will be assigned in the loop
         int count = 0;
@@ -53,7 +50,6 @@ internal static class ExpressionFactory
         while (member is not null)
         {
             memberInfo = member.Member; // Keep track of the current member's info
-            RuleCreationException.ThrowIfNotMemberOrPropertyExpression(member); // Validate it's a member access
 
             member = member.Expression as MemberExpression; // Move up to the parent expression
             count++; // Increment count for each member
@@ -81,7 +77,7 @@ internal static class ExpressionFactory
     /// is passed to the <see cref="PropertyKey"/> for later use in collection-specific validation rules.
     /// </param>
     /// <returns>A fully configured <see cref="PropertyCtx{T, TProperty}"/> instance.</returns>
-    /// <exception cref="RuleCreationException">
+    /// <exception cref="ValidationDefinitionException">
     /// Thrown if the <paramref name="propertySelector"/> is not a valid member access expression
     /// or if any intermediate expression is invalid.
     /// </exception>
@@ -93,9 +89,6 @@ internal static class ExpressionFactory
         bool removeStartName = false,
         bool isForCollection = false)
     {
-        // Validate the property selector expression.
-        RuleCreationException.ThrowIfInvalidSelector(propertySelector);
-
         // Parameter expression to be used in the compiled lambda (e.g., 'x' in 'x => x.Prop').
         ParameterExpression parameterExpression = propertySelector.Parameters[0];
 
@@ -133,9 +126,6 @@ internal static class ExpressionFactory
                     sb.Insert(0, member.Member.Name);
                 }
             }
-
-            // Validate that the current expression is indeed a member or property access.
-            RuleCreationException.ThrowIfNotMemberOrPropertyExpression(member);
 
             // Move up the expression tree to the parent member's expression.
             member = member.Expression as MemberExpression;

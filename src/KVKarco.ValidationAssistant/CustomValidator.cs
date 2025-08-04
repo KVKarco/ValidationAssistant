@@ -97,6 +97,8 @@ public abstract class CustomValidator<T, TExternalResources>
         return contex.Result; // Return the accumulated results.
     }
 
+    protected abstract void PrepperValidation(IValidationCtx<T, TExternalResources> contex);
+
     protected abstract void ComposeValidation(IValidationDefinitionBuilder<T, TExternalResources> builder);
 }
 

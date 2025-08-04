@@ -95,7 +95,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         string? explanationMessage = null,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        RuleCreationException.ThrowIfNull(predicate);
+        ValidationDefinitionException.ThrowIfNull(predicate);
 
         // Create a new MainInstancePreValidationRule and add it to the list of pre-validation rules.
         MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
@@ -108,7 +108,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         string? explanationMessage = null,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        RuleCreationException.ThrowIfNull(predicate);
+        ValidationDefinitionException.ThrowIfNull(predicate);
 
         // Create a new MainInstancePreValidationRule (asynchronous version) and add it.
         MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
@@ -121,7 +121,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         string? explanationMessage = null,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        RuleCreationException.ThrowIfNull(predicate);
+        ValidationDefinitionException.ThrowIfNull(predicate);
 
         // Create a new ResourcesPreValidationRule and add it to the list of pre-validation rules.
         ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
@@ -134,7 +134,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         string? explanationMessage = null,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        RuleCreationException.ThrowIfNull(predicate);
+        ValidationDefinitionException.ThrowIfNull(predicate);
 
         // Create a new ResourcesPreValidationRule (asynchronous version) and add it.
         ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
@@ -149,8 +149,8 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     {
         ResolveLastRule();
 
-        RuleCreationException.ThrowIfNull(condition);
-        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsMet);
+        ValidationDefinitionException.ThrowIfNull(condition);
+        ValidationDefinitionException.ThrowIfNull(rulesToUseWhenConditionIsMet);
 
         int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
         rulesToUseWhenConditionIsMet(); // Execute the action to populate rules for the 'when' block
@@ -179,8 +179,8 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     {
         ResolveLastRule();
 
-        RuleCreationException.ThrowIfNull(condition);
-        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsMet);
+        ValidationDefinitionException.ThrowIfNull(condition);
+        ValidationDefinitionException.ThrowIfNull(rulesToUseWhenConditionIsMet);
 
         int reservationIndex = ReserveSlot(); // Reserve a spot for the ConditionalFlowValidatorRule
         rulesToUseWhenConditionIsMet(); // Execute the action to populate rules for the 'when' block
@@ -206,7 +206,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
+        ValidationDefinitionException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
 
         // Ensure a UseWhen was called previously and the condition is synchronous
         if (_conditionToChain is not ValidationCondition<T, TExternalResources> syncCondition)
@@ -238,7 +238,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         Action rulesToUseWhenConditionIsNotMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
-        RuleCreationException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
+        ValidationDefinitionException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
 
         // Ensure a UseWhenAsync was called previously and the condition is asynchronous
         if (_conditionToChain is not AsyncValidationCondition<T, TExternalResources> asyncCondition)

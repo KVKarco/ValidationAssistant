@@ -107,7 +107,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, int>> selector = u => u.Address!.State!.Name!.Substring(2).Length;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.CreatePropertyCtx(selector, false, false);
         });
@@ -123,7 +123,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, bool>> selector = u => ((Settings)u.PrimaryContact!.UserPreferences!.AppSettings!).IsDarkMode;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.CreatePropertyCtx(selector, false, false);
         });
@@ -218,7 +218,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, int>> selector = u => u.Name!.Substring(2).Length; // Method call
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.GetFirstMemberInChainAndCount(selector);
         });
@@ -233,7 +233,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, bool>> selector = u => ((Settings)u.PrimaryContact!.UserPreferences!.AppSettings!).IsDarkMode;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.GetFirstMemberInChainAndCount(selector);
         });
@@ -249,7 +249,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, TestUser>> selector = u => u;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.CreatePropertyCtx(selector, false, false);
         });
@@ -265,7 +265,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, int>> selector = u => 42;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.CreatePropertyCtx(selector, false, false);
         });
@@ -281,7 +281,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, int>> selector = u => u.Age + 1;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.CreatePropertyCtx(selector, false, false);
         });
@@ -296,7 +296,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, TestUser>> selector = u => u;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.GetFirstMemberInChainAndCount(selector);
         });
@@ -311,7 +311,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, int>> selector = u => 42;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.GetFirstMemberInChainAndCount(selector);
         });
@@ -326,7 +326,7 @@ public class ExpressionFactoryTests
         Expression<Func<TestUser, int>> selector = u => u.Age + 1;
 
         // Act & Assert
-        var exception = Assert.Throws<RuleCreationException>(() =>
+        var exception = Assert.Throws<ValidationDefinitionException>(() =>
         {
             ExpressionFactory.GetFirstMemberInChainAndCount(selector);
         });

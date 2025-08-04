@@ -83,7 +83,7 @@ internal abstract class PropertyValidator<T, TExternalResources, TProperty, TCon
     /// <param name="context">The validation run context.</param>
     /// <param name="ct">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous validation operation.</returns>
-    public sealed override async ValueTask ValidateAsync(TContext context, CancellationToken ct)
+    public sealed override async ValueTask ValidateAsync(TContext context, in CancellationToken ct)
     {
         StartValidation(context, out Undefined<TProperty> property);
 
