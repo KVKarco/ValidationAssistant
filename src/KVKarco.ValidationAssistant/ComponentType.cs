@@ -3,6 +3,7 @@
 public enum ComponentType
 {
     PropertyValidator,
-    ConditionalBlock
+    ConditionalBlock,
+    SchemaGuard
 }
 

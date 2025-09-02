@@ -7,7 +7,7 @@ namespace KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 
 internal sealed class CustomValidatorCoreBuilder<T, TExternalResources> :
     ValidatorCoreBuilder<T, TExternalResources, CustomValidatorRunCtx<T, TExternalResources>>,
-    IValidationDefinitionBuilder<T, TExternalResources>
+    IValidatorValidationDefinitionBuilder<T, TExternalResources>
 {
     public CustomValidatorCoreBuilder(string validatorName)
         : base(validatorName)

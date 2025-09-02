@@ -2,9 +2,9 @@
 
 namespace KVKarco.ValidationAssistant.Abstractions;
 
-public interface IConditionalBlockBuilder<T, TExternalResources>
+public interface IConditionalBlockBuilder<TSubject, TResources>
 {
-    void OtherwiseUse(
-        Action componentsToUse,
+    void Otherwise(
+        Action<IValidatorValidationDefinitionBuilder<TSubject, TResources>> componentsToUse,
         [CallerLineNumber] int callingFileLineNumber = 0);
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using KVKarco.ValidationAssistant.Internal.Utilities.TargetAssets;
+using System.Collections.Immutable;
 
 namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 
@@ -14,7 +15,7 @@ namespace KVKarco.ValidationAssistant.Internal.PropertyValidation;
 /// <typeparam name="TContext">The type of the validation run context.</typeparam>
 internal abstract class PropertyValidator<T, TExternalResources, TProperty, TContext> :
     IValidatorComponent<T, TExternalResources, TContext>
-    where TContext : ValidatorRunCtx<T, TExternalResources>
+    where TContext : ValidationCtx<T, TExternalResources>
 {
     private readonly ImmutableArray<ValidationRule<T, TExternalResources, TProperty>> _rules;
     private readonly ImmutableArray<ValidationRuleMetaData<T, TExternalResources, TProperty>> _rulesMetaData;

@@ -1,37 +1,37 @@
 ﻿namespace KVKarco.ValidationAssistant.Abstractions;
 
-public interface IValidationRuleOptionsBuilder<T, TExternalResources, out TProperty>
+public interface IValidationRuleOptionsBuilder<TSubject, TResources, out TProperty>
 {
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> WithMessage(
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> WithMessage(
         string message);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> WithMessage(
-        MessageFactory<T, TExternalResources, TProperty> messageFactory);
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> WithMessage(
+        MessageFactory<TSubject, TResources, TProperty> messageFactory);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> WithSeverity(
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> WithSeverity(
         Severity severity);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> WithFlowImpact(
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> WithFlowImpact(
         FlowEffect effect);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> WithCode(
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> WithCode(
         string code);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> UseWhen(
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> ApplyWhen(
         string snapShot);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> UseUnless(
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> ApplyUnless(
         string snapShot);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> UseWhen(
-        Condition<T, TExternalResources, TProperty> condition);
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> ApplyWhen(
+        Condition<TSubject, TResources> condition);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> UseUnless(
-        Condition<T, TExternalResources, TProperty> condition);
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> ApplyUnless(
+        Condition<TSubject, TResources> condition);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> UseWhenAsync(
-        AsyncCondition<T, TExternalResources, TProperty> condition);
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> ApplyWhenAsync(
+        AsyncCondition<TSubject, TResources> condition);
 
-    IValidationRuleOptionsBuilder<T, TExternalResources, TProperty> UseUnlessAsync(
-        AsyncCondition<T, TExternalResources, TProperty> condition);
+    IValidationRuleOptionsBuilder<TSubject, TResources, TProperty> ApplyUnlessAsync(
+        AsyncCondition<TSubject, TResources> condition);
 }

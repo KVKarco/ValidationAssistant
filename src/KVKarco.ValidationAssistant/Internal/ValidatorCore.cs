@@ -55,11 +55,11 @@ internal abstract class ValidatorCore
 /// </summary>
 /// <typeparam name="T">The type of the main object instance being validated by this core.</typeparam>
 /// <typeparam name="TExternalResources">The type of external resources that can be accessed by the validation rules.</typeparam>
-/// <typeparam name="TContex">The specific type of <see cref="ValidatorRunCtx{T, TExternalResources}"/>
+/// <typeparam name="TContex">The specific type of <see cref="ValidationCtx{T, TExternalResources}"/>
 /// used for the validation run, ensuring context-specific operations and access to resources.</typeparam>
 internal abstract class ValidatorCore<T, TExternalResources, TContex> :
     ValidatorCore
-    where TContex : ValidatorRunCtx<T, TExternalResources>
+    where TContex : ValidationCtx<T, TExternalResources>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidatorCore{T, TExternalResources, TContex}"/> class.

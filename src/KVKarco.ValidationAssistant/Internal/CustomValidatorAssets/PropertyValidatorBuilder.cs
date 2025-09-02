@@ -1,4 +1,5 @@
 ﻿using KVKarco.ValidationAssistant.Internal.PropertyValidation;
+using KVKarco.ValidationAssistant.Internal.Utilities.TargetAssets;
 
 namespace KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 
@@ -18,7 +19,7 @@ internal sealed class CustomeValidatorPropertyRuleBuilder<T, TExternalResources,
     IBuildableRule<T, TExternalResources, CustomValidatorRunCtx<T, TExternalResources>>
 {
     private readonly string _validatorName;
-    private readonly PropertyCtx<T, TProperty> _propertyCtx;
+    private readonly TargetCtx<T, TProperty> _propertyCtx;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CustomeValidatorPropertyRuleBuilder{T, TExternalResources, TProperty}"/> class.
@@ -31,7 +32,7 @@ internal sealed class CustomeValidatorPropertyRuleBuilder<T, TExternalResources,
     /// <param name="snapShots">A reference to the list of snapshots managed by the main validator builder.</param>
     public CustomeValidatorPropertyRuleBuilder(
         string validatorName,
-        PropertyCtx<T, TProperty> propertyCtx,
+        TargetCtx<T, TProperty> propertyCtx,
         ValidatorFlow defaultRuleFailureStrategy,
         RuleSetFlow defaultComponentFailureStrategy,
         int declaredOnLine,

@@ -4,6 +4,6 @@ public enum ExecutionStatus
 {
     Passed,
     Failed,
-    Informational,
+    Skipped,
 }
 

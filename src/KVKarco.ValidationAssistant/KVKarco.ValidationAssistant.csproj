@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	 <EnforceExternalCodeAnalysisRules>true</EnforceExternalCodeAnalysisRules>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -14,6 +15,11 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="KVKarco.ValidationAssistant.UnitTests" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+	  <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.8" />
 	</ItemGroup>
 
 </Project>

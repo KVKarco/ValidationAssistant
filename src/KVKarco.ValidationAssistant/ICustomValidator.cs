@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using KVKarco.ValidationAssistant.Results;
+using System.Globalization;
 
 namespace KVKarco.ValidationAssistant;
 
@@ -24,7 +25,7 @@ public interface ICustomValidator<in T>
     /// Synchronously validates the specified <paramref name="value"/>.
     /// </summary>
     /// <param name="value">The instance of <typeparamref name="T"/> to validate.</param>
-    /// <param name="culture">Optional. The culture information to use for generating validation messages. Defaults to <see cref="ValidatorsConfig.GlobalDefaults.DefaultCulture"/> if not provided.</param>
+    /// <param name="culture">Optional. The culture information to use for generating validation messages. Defaults to <see cref="ValidationAssistantConfig.GlobalDefaults.DefaultCulture"/> if not provided.</param>
     /// <returns>A <see cref="ValidatorRunResult"/> containing any validation failures.</returns>
     ValidatorRunResult Validate(T value, CultureInfo? culture = null);
 
@@ -32,7 +33,7 @@ public interface ICustomValidator<in T>
     /// Asynchronously validates the specified <paramref name="value"/>.
     /// </summary>
     /// <param name="value">The instance of <typeparamref name="T"/> to validate.</param>
-    /// <param name="culture">Optional. The culture information to use for generating validation messages. Defaults to <see cref="ValidatorsConfig.GlobalDefaults.DefaultCulture"/> if not provided.</param>
+    /// <param name="culture">Optional. The culture information to use for generating validation messages. Defaults to <see cref="ValidationAssistantConfig.GlobalDefaults.DefaultCulture"/> if not provided.</param>
     /// <param name="ct">Optional. A <see cref="CancellationToken"/> to observe while waiting for the validation to complete.</param>
     /// <returns>A <see cref="Task{TResult}"/> that represents the asynchronous validation operation,
     /// yielding a <see cref="ValidatorRunResult"/> containing any validation failures.</returns>

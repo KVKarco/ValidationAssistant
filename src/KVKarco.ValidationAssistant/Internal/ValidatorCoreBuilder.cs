@@ -1,6 +1,9 @@
-﻿using KVKarco.ValidationAssistant.Exceptions;
-using KVKarco.ValidationAssistant.Internal.PreValidation;
-using KVKarco.ValidationAssistant.Internal.ValidationFlow;
+﻿using KVKarco.ValidationAssistant.Abstractions;
+using KVKarco.ValidationAssistant.Abstractions.ValidationContexts;
+using KVKarco.ValidationAssistant.Exceptions;
+using KVKarco.ValidationAssistant.Internal.Utilities;
+using KVKarco.ValidationAssistant.Internal.Utilities.TargetAssets;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
 namespace KVKarco.ValidationAssistant.Internal;
@@ -11,16 +14,18 @@ namespace KVKarco.ValidationAssistant.Internal;
 /// pre-validation rules. It also manages global validation strategies for the builder.
 /// Concrete implementations will extend this to include the core validation rule definitions.
 /// </summary>
-/// <typeparam name="T">The type of the main instance being validated.</typeparam>
-/// <typeparam name="TExternalResources">The type of external resources available during validation.</typeparam>
-/// <typeparam name="TContext">The specific type of <see cref="ValidatorRunCtx{T, TExternalResources}"/>
+/// <typeparam name="TSubject">The type of the main instance being validated.</typeparam>
+/// <typeparam name="TResources">The type of external resources available during validation.</typeparam>
+/// <typeparam name="TContext">The specific type of <see cref="ValidationCtx{T, TExternalResources}"/>
 /// that this builder will use when compiling the validator core.</typeparam>
-internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
-    IPreValidationDefinitionBuilder<T, TExternalResources>,
-    IConditionalFlowRuleBuilder<T, TExternalResources>, // Added for UseWhen/UseWhenAsync
-    IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources>,
-    IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources>
-    where TContext : ValidatorRunCtx<T, TExternalResources>
+internal abstract class ValidatorCoreBuilder<TSubject, TResources, TContext> :
+    IValidatorPreValidationDefinitionBuilder<TSubject, TResources>,
+    ISchemaGuardBuilder<TSubject>
+    //IPreValidationDefinitionBuilder<T, TExternalResources>,
+    //IConditionalFlowRuleBuilder<T, TExternalResources>, // Added for UseWhen/UseWhenAsync
+    //IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources>,
+    //IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources>
+    where TContext : ValidationCtx<TSubject, TResources>
 {
     /// <summary>
     /// The name of the validator being built. This name is used for identification and reporting.
@@ -33,26 +38,66 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     /// </summary>
     protected readonly List<string> _snapShots;
 
+    public ISchemaGuardBuilder<TSubject> EnsureSchema() => this;
+
+    public ISchemaGuardBuilder<TSubject> Contains<TTarget>(
+        Expression<Func<TSubject, TTarget>> selector,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        Ensure.IsValidSelector(selector);
+        TargetCtx<TSubject, TTarget> propertyCtx = InternalCache.GetOrAddPropertyCtx(selector);
+        // validate the selector.
+        // create a pre-validation rule.
+        // return this.
+    }
+
+    public IResourceGuardBuilder<TResources, TResource> Guard<TResource>(
+        Expression<Func<TResources, TResource>> selector,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        //TODO: Return a builder for resource validation rules.
+        throw new NotImplementedException();
+    }
+
+    public void EnrichResources(
+        Action<IPreValidationCtx<TResources>> action,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        //Build pre-validation rule to enrich resources based on the provided action.
+        throw new NotImplementedException();
+    }
+
+    public void EnrichResourcesAsync(
+        AsyncAction<IPreValidationCtx<TResources>> action,
+        [CallerLineNumber] int callingFileLineNumber = 0)
+    {
+        //Build pre-validation rule to enrich resources based on the provided action.
+        throw new NotImplementedException();
+    }
+
+    //TODO: return this builder.
+    public IValidationDefaultsConfigurator Defaults => throw new NotImplementedException();
+
     /// <summary>
     /// A list of <see cref="IPreValidationRule{T, TExternalResources}"/> instances that will be
     /// executed before the main validation rules. These rules are typically used for
     /// initial checks or prerequisites.
     /// </summary>
-    protected readonly List<IPreValidationRule<T, TExternalResources>> _preValidationRules;
+    protected readonly List<IPreValidationRule<TSubject, TResources>> _preValidationRules;
 
     /// <summary>
     /// A list of <see cref="IValidatorComponent{T, TExternalResources, TContext}"/> instances that constitute
     /// the main validation logic. This list will be populated by the concrete builder's
     /// implementation of <see cref="ICoreValidationDefinitionBuilder{T, TExternalResources}"/>.
     /// </summary>
-    protected readonly List<IValidatorComponent<T, TExternalResources, TContext>> _rules;
+    protected readonly List<IValidatorComponent<TSubject, TResources, TContext>> _rules;
 
     /// <summary>
     /// Holds the <see cref="IBuildableRule{T, TExternalResources, TContext}"/> instance that is currently
     /// being configured via the fluent API. This allows subsequent fluent calls to apply configurations
     /// to the most recently defined rule. It is set to <see langword="null"/> after the rule is built and added.
     /// </summary>
-    protected IBuildableRule<T, TExternalResources, TContext>? _ruleToBeAdded;
+    protected IBuildableRule<TSubject, TResources, TContext>? _ruleToBeAdded;
 
     /// <summary>
     /// Stores the condition delegate (sync or async) from the correct UseWhen/UseWhenAsync call.
@@ -73,13 +118,15 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         _rules = []; // Initialize the new _rules list
 
         // Initialize default failure strategies from global configuration.
-        RuleFailureStrategy = ValidatorsConfig.GlobalDefaults.OnRuleFailure;
-        RuleComponentsFailureStrategy = ValidatorsConfig.GlobalDefaults.OnComponentFailure;
+        RuleFailureStrategy = ValidationAssistantConfig.GlobalDefaults.OnRuleFailure;
+        RuleComponentsFailureStrategy = ValidationAssistantConfig.GlobalDefaults.OnComponentFailure;
     }
 
     public ValidatorFlow RuleFailureStrategy { get; set; }
 
     public RuleSetFlow RuleComponentsFailureStrategy { get; set; }
+
+
 
     /// <inheritdoc/>
     public void DefaultRuleFailureStrategy(ValidatorFlow ruleFailureStrategy)
@@ -89,61 +136,17 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     public void DefaultComponentFailureStrategy(RuleSetFlow componentFailureStrategy)
         => RuleComponentsFailureStrategy = componentFailureStrategy;
 
-    /// <inheritdoc/>
-    public void Ensure(
-        PreValidationPredicate<T> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        ValidationDefinitionException.ThrowIfNull(predicate);
 
-        // Create a new MainInstancePreValidationRule and add it to the list of pre-validation rules.
-        MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
+
+
+
+
+
+
 
     /// <inheritdoc/>
-    public void EnsureAsync(
-        AsyncPreValidationPredicate<T> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        ValidationDefinitionException.ThrowIfNull(predicate);
-
-        // Create a new MainInstancePreValidationRule (asynchronous version) and add it.
-        MainInstancePreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
-
-    /// <inheritdoc/>
-    public void EnsureResources(
-        PreValidationPredicate<TExternalResources> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        ValidationDefinitionException.ThrowIfNull(predicate);
-
-        // Create a new ResourcesPreValidationRule and add it to the list of pre-validation rules.
-        ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
-
-    /// <inheritdoc/>
-    public void EnsureResourcesAsync(
-        AsyncPreValidationPredicate<TExternalResources> predicate,
-        string? explanationMessage = null,
-        [CallerLineNumber] int callingFileLineNumber = 0)
-    {
-        ValidationDefinitionException.ThrowIfNull(predicate);
-
-        // Create a new ResourcesPreValidationRule (asynchronous version) and add it.
-        ResourcesPreValidationRule<T, TExternalResources> rule = new(_validatorName, callingFileLineNumber, predicate, explanationMessage);
-        _preValidationRules.Add(rule);
-    }
-
-    /// <inheritdoc/>
-    public IOtherwiseConditionalFlowRuleBuilder<T, TExternalResources> UseWhen(
-        ValidationCondition<T, TExternalResources> condition,
+    public IOtherwiseConditionalFlowRuleBuilder<TSubject, TResources> UseWhen(
+        ValidationCondition<TSubject, TResources> condition,
         Action rulesToUseWhenConditionIsMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
@@ -158,7 +161,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
 
         // Create the ConditionalFlowValidatorRule and place it in the reserved slot
         SetRuleToReservedSlot(
-            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+            new ConditionalFlowValidatorRule<TSubject, TResources, TContext>(
                 _validatorName.AsSpan(), // Convert string to ReadOnlySpan<char>
                 _rules.Count - reservationIndex - 1, // This is the skip count if condition is false
                 false, // This is a 'when' block
@@ -172,8 +175,8 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     }
 
     /// <inheritdoc/>
-    public IOtherwiseConditionalAsyncFlowRuleBuilder<T, TExternalResources> UseWhenAsync(
-        AsyncValidationCondition<T, TExternalResources> condition,
+    public IOtherwiseConditionalAsyncFlowRuleBuilder<TSubject, TResources> UseWhenAsync(
+        AsyncValidationCondition<TSubject, TResources> condition,
         Action rulesToUseWhenConditionIsMet,
         [CallerLineNumber] int callingFileLineNumber = 0)
     {
@@ -188,7 +191,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
 
         // Create the ConditionalFlowValidatorRule and place it in the reserved slot
         SetRuleToReservedSlot(
-            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+            new ConditionalFlowValidatorRule<TSubject, TResources, TContext>(
                 _validatorName.AsSpan(), // Convert string to ReadOnlySpan<char>
                 _rules.Count - reservationIndex - 1, // This is the skip count if condition is false
                 false, // This is a 'when' block
@@ -209,7 +212,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         ValidationDefinitionException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
 
         // Ensure a UseWhen was called previously and the condition is synchronous
-        if (_conditionToChain is not ValidationCondition<T, TExternalResources> syncCondition)
+        if (_conditionToChain is not ValidationCondition<TSubject, TResources> syncCondition)
         {
             throw new ValidationAssistantInternalException("OtherwiseUse must follow a synchronous UseWhen call.");
         }
@@ -222,7 +225,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         // Create and place the 'Otherwise' ConditionalFlowValidatorRule in the reserved slot.
         // This rule will be executed if the 'when' condition was false.
         SetRuleToReservedSlot(
-            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+            new ConditionalFlowValidatorRule<TSubject, TResources, TContext>(
                 _validatorName.AsSpan(),
                 _rules.Count - reservationIndex - 1, // This is the skip count if condition is true
                 true, // This is an 'otherwise' block
@@ -241,7 +244,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         ValidationDefinitionException.ThrowIfNull(rulesToUseWhenConditionIsNotMet);
 
         // Ensure a UseWhenAsync was called previously and the condition is asynchronous
-        if (_conditionToChain is not AsyncValidationCondition<T, TExternalResources> asyncCondition)
+        if (_conditionToChain is not AsyncValidationCondition<TSubject, TResources> asyncCondition)
         {
             throw new ValidationAssistantInternalException("OtherwiseUseAsync must follow an asynchronous UseWhenAsync call.");
         }
@@ -254,7 +257,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         // Create and place the 'Otherwise' ConditionalFlowValidatorRule in the reserved slot.
         // This rule will be executed if the 'when' condition was false.
         SetRuleToReservedSlot(
-            new ConditionalFlowValidatorRule<T, TExternalResources, TContext>(
+            new ConditionalFlowValidatorRule<TSubject, TResources, TContext>(
                 _validatorName.AsSpan(),
                 _rules.Count - reservationIndex - 1, // This is the skip count if 'otherwise' condition is true (meaning 'when' was true)
                 true, // This is an 'otherwise' block
@@ -298,7 +301,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
         if (_ruleToBeAdded is not null)
         {
             // Capture the builder instance and null out the field to prepare for the next rule.
-            IBuildableRule<T, TExternalResources, TContext> builder = _ruleToBeAdded;
+            IBuildableRule<TSubject, TResources, TContext> builder = _ruleToBeAdded;
             _ruleToBeAdded = null;
 
             // Build the concrete ValidatorRule from the IBuildableRule and add it to the list.
@@ -312,7 +315,7 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
     /// </summary>
     /// <param name="rule">The compiled validator rule to place.</param>
     /// <param name="reservationIndex">Optional. The index of the reserved slot. If null, the rule is added to the end.</param>
-    protected virtual void SetRuleToReservedSlot(IValidatorComponent<T, TExternalResources, TContext> rule, int? reservationIndex = null)
+    protected virtual void SetRuleToReservedSlot(IValidatorComponent<TSubject, TResources, TContext> rule, int? reservationIndex = null)
     {
         if (reservationIndex is not null)
         {
@@ -323,4 +326,6 @@ internal abstract class ValidatorCoreBuilder<T, TExternalResources, TContext> :
             _rules.Add(rule);
         }
     }
+
+
 }

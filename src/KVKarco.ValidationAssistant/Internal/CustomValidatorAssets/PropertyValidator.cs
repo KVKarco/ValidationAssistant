@@ -1,4 +1,4 @@
-﻿using KVKarco.ValidationAssistant.Internal.PropertyValidation;
+﻿using KVKarco.ValidationAssistant.Internal.Utilities.TargetAssets;
 using System.Collections.Immutable;
 
 namespace KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
@@ -6,12 +6,12 @@ namespace KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
 internal sealed class CustomValidatorPropertyRule<T, TExternalResources, TProperty> :
     IValidatorComponent<T, TExternalResources, CustomValidatorRunCtx<T, TExternalResources>>
 {
-    private readonly PropertyCtx<T, TProperty> _propertyContext;
+    private readonly TargetCtx<T, TProperty> _propertyContext;
     private readonly ImmutableArray<ValidationRule<T, TExternalResources, TProperty>> _validationRules;
     private readonly ImmutableArray<ValidationRuleMetaData<T, TExternalResources, TProperty>> _validationRulesMetaData;
 
     public CustomValidatorPropertyRule(
-        PropertyCtx<T, TProperty> propertyContext,
+        TargetCtx<T, TProperty> propertyContext,
         List<ValidationRule<T, TExternalResources, TProperty>> validationRules,
         List<ValidationRuleMetaData<T, TExternalResources, TProperty>> validationRulesMetaData)
     {
@@ -23,9 +23,9 @@ internal sealed class CustomValidatorPropertyRule<T, TExternalResources, TProper
     public void Execute(CustomValidatorRunCtx<T, TExternalResources> context, ValidatorComponentMetaData metaData)
     {
         context.ForProperty(_propertyContext.Key);
-        Undefined<TProperty> property = _propertyContext.ExtractValue(context.Value);
+        Undefined<TProperty> property = _propertyContext.ExtractValue(context.Subject);
 
-        if (!property.HasValue)
+        if (!property.IsDefined)
         {
             context.AddComponentFailure(metaData, "PropertyValidator is skipped, value cannot be extracted.");
         }
@@ -68,7 +68,7 @@ internal sealed class CustomValidatorPropertyRule<T, TExternalResources, TProper
     protected override void StartValidation(CustomValidatorRunCtx<T, TExternalResources> context, out Undefined<TProperty> property)
     {
 
-        property = _propertyContext.ExtractValue(context.Value); // Extract the property value
+        property = _propertyContext.ExtractValue(context.Subject); // Extract the property value
     }
 }
 

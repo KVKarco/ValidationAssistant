@@ -1,107 +1,61 @@
-﻿using KVKarco.ValidationAssistant.Abstractions;
-using KVKarco.ValidationAssistant.Internal.CustomValidatorAssets;
-using KVKarco.ValidationAssistant.Internal.PropertyValidation;
+﻿using KVKarco.ValidationAssistant.Internal.Utilities.MessageTemplates;
+using KVKarco.ValidationAssistant.Internal.Utilities.TargetAssets;
+using Microsoft.Extensions.ObjectPool;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq.Expressions;
 
 namespace KVKarco.ValidationAssistant.Internal.Utilities;
 
-/// <summary>
-/// Provides a static, thread-safe caching mechanism for compiled <see cref="CustomValidatorCore{T, TExternalResources}"/> instances
-/// and <see cref="PropertyCtx"/> objects. This cache optimizes performance by storing and reusing
-/// compiled validator cores and property contexts once they have been built, avoiding redundant
-/// compilation of validation rules and property access delegates.
-/// </summary>
 internal static class InternalCache
 {
-    /// <summary>
-    /// A thread-safe dictionary that caches <see cref="Lazy{T}"/> instances of <see cref="ValidatorCore"/>,
-    /// keyed by the concrete <see cref="Type"/> of the <see cref="CustomValidator{T, TExternalResources}"/> that owns them.
-    /// The <see cref="Lazy{T}"/> ensures that the validator core is built only once, atomically, when first requested.
-    /// </summary>
-    private static readonly ConcurrentDictionary<Type, Lazy<ValidatorCore>> _coresCache = [];
+    private static DefaultObjectPool<MessageFormatter> _formattersPool = new(new MessageFormatterPolicy());
+    private static readonly ConcurrentDictionary<TemplateKey, CompiledTemplate> _templates = new(new TemplateKeyEqualityComparer());
+    private static readonly ConcurrentDictionary<string, TargetCtx> _membersCtxCache = [];
+    //private static readonly ConcurrentDictionary<Type, Lazy<ValidatorCore>> _coresCache = [];
 
-    /// <summary>
-    /// A thread-safe dictionary that caches <see cref="PropertyCtx"/> instances,
-    /// keyed by a string representation of the property selector expression.
-    /// This prevents redundant compilation of property access delegates and metadata extraction.
-    /// </summary>
-    private static readonly ConcurrentDictionary<string, PropertyCtx> _membersCtxCache = [];
 
-    /// <summary>
-    /// Retrieves a compiled <see cref="CustomValidatorCore{T, TExternalResources}"/> from the cache,
-    /// or builds and adds it to the cache if it does not already exist for the given validator type.
-    /// This method ensures that validator core compilation happens only once per validator type across the application lifetime.
-    /// </summary>
-    /// <typeparam name="T">The type of the instance being validated by the validator core.</typeparam>
-    /// <typeparam name="TExternalResources">The type of external resources used by the validator core.</typeparam>
-    /// <param name="validatorType">The concrete <see cref="Type"/> of the <see cref="CustomValidator{T, TExternalResources}"/>.</param>
-    /// <param name="preValidationRuleCreator">An action that defines the pre-validation rules for the validator,
-    /// typically provided by the <c>ExpressPreValidationRules</c> method of <see cref="CustomValidator{T, TExternalResources}"/>.</param>
-    /// <param name="ruleCreator">An action that defines the main validation rules for the validator,
-    /// typically provided by the abstract <c>ExpressRules</c> method of <see cref="CustomValidator{T, TExternalResources}"/>.</param>
-    /// <returns>A compiled and cached instance of <see cref="CustomValidatorCore{T, TExternalResources}"/>.</returns>
-    /// <remarks>
-    /// This method uses <see cref="Lazy{T}"/> to ensure thread-safe, one-time initialization of the validator core.
-    /// The actual compilation logic is encapsulated within the <see cref="CustomValidatorCoreBuilder{T, TExternalResources}"/>,
-    /// which implements the rule expression builder interfaces.
-    /// </remarks>
-    public static CustomValidatorCore<T, TExternalResources> GetOrAddExpressValidatorCore<T, TExternalResources>(
-        Type validatorType,
-        Action<IPreValidationDefinitionBuilder<T, TExternalResources>> preValidationRuleCreator,
-        Action<ICoreValidationDefinitionBuilder<T, TExternalResources>> ruleCreator)
+    public static MessageFormatter RentFormatter() => _formattersPool.Get();
+
+    public static void ReturnFormatter(MessageFormatter formatter) => _formattersPool.Return(formatter);
+
+
+    public static void RegisterTemplate(string templateName, CultureInfo culture, string messageTemplate, bool overwrite)
     {
-        Lazy<ValidatorCore> validationCore = _coresCache.GetOrAdd(
-            validatorType,
-            (type, action) => new Lazy<ValidatorCore>(() =>
-            {
-                // Get validator name from attribute or fallback to type name
-                string name = Attribute.GetCustomAttribute(type, typeof(ValidatorNameAttribute))
-                is not ValidatorNameAttribute myAttribute
-                ? type.Name
-                : myAttribute.ValidatorName;
+        TemplateKey key = new(templateName, culture);
 
-                // Create an instance of the builder, which will gather the rules
-                CustomValidatorCoreBuilder<T, TExternalResources> builder = new(name);
-                action.preValidationRuleCreator(builder); // Call the pre-validation rule creator
-                action.ruleCreator(builder); // Call the main rule creator
-                return builder.CreateValidatorCore(); // Return the compiled validator core
-            }),
-            (preValidationRuleCreator, ruleCreator)); // Passed as state to the factory delegate
-
-        // Cast the generic ValidatorCore to the specific ExpressValidatorCore type.
-        // This cast is safe because the Lazy<ValidatorCore> will contain an ExpressValidatorCore.
-        return (CustomValidatorCore<T, TExternalResources>)validationCore.Value;
+        if (overwrite || !_templates.ContainsKey(key))
+        {
+            _templates[key] = CompiledTemplate.Parse(templateName, culture, messageTemplate);
+        }
     }
 
-    /// <summary>
-    /// Retrieves a <see cref="PropertyCtx{T, TProperty}"/> from the cache, or creates and adds it
-    /// if it does not already exist for the given property selector expression.
-    /// This method leverages <see cref="ExpressionFactory.CreatePropertyCtx{T, TProperty}(Expression{Func{T, TProperty}}, bool, bool)"/>
-    /// to generate the context and then caches it for future reuse.
-    /// </summary>
-    /// <typeparam name="T">The type of the main instance from which the property value is extracted.</typeparam>
-    /// <typeparam name="TProperty">The type of the property whose context is being managed.</typeparam>
-    /// <param name="memberSelector">The expression selecting the property (e.g., <c>x => x.User.Address.Street</c>).</param>
-    /// <param name="removeLastMember">
-    /// If <see langword="true"/>, the name of the last member in the property path (e.g., "Street" in "User.Address.Street")
-    /// will be removed from the resulting <see cref="PropertyKey.PropertyPath"/>. This is useful for scenarios
-    /// where only the parent path is desired. (Note: The parameter name might be intended as `removeStartName`
-    /// to align with `ExpressionFactory`, but its current name suggests removing the last member. Clarification needed if different from `removeStartName` in `ExpressionFactory`).
-    /// **Correction:** This parameter name `removeLastMember` seems to be a mismatch with `removeStartName` in `ExpressionFactory`.
-    /// Assuming it maps to `ExpressionFactory.removeStartName` for consistency, as that's what's passed to `CreatePropertyCtx`.
-    /// </param>
-    /// <param name="isForCollection">
-    /// A flag indicating whether the property being selected represents a collection. This information
-    /// is passed to the <see cref="PropertyKey"/> for later use in collection-specific validation rules.
-    /// </param>
-    /// <returns>A compiled and cached instance of <see cref="PropertyCtx{T, TProperty}"/>.</returns>
-    /// <remarks>
-    /// The property selector expression is normalized to a string key using <see cref="SelectorRewriter.Rewrite{T, TProperty}(Expression{Func{T, TProperty}})"/>
-    /// to ensure consistent caching regardless of the parameter name used in the lambda (e.g., `user => user.Name` and `x => x.Name` map to the same key).
-    /// </remarks>
-    public static PropertyCtx<T, TProperty> GetOrAddPropertyCtx<T, TProperty>(
-        Expression<Func<T, TProperty>> memberSelector,
+    public static CompiledTemplate? ResolveTemplate(string name, CultureInfo culture)
+    {
+        // 1) Exact culture
+        if (_templates.TryGetValue(new(name, culture), out CompiledTemplate? value))
+            return value;
+
+        // 2) Parent culture (e.g., "fr-CA" -> "fr")
+        var parent = culture.Parent;
+        if (_templates.TryGetValue(new(name, culture.Parent), out var parentT))
+            return parentT;
+
+        // 3) Invariant culture
+        if (_templates.TryGetValue(new(name, CultureInfo.InvariantCulture), out var inv))
+            return inv;
+
+        return null;
+    }
+
+    public static void ClearTemplates()
+    {
+        _templates.Clear();
+    }
+
+
+    public static TargetCtx<TSubject, TTarget> GetOrExtractPropertyCtx<TSubject, TTarget>(
+        Expression<Func<TSubject, TTarget>> memberSelector,
         bool removeStartName = false,
         bool isForCollection = false)
     {
@@ -114,13 +68,15 @@ internal static class InternalCache
 
         // Get or add the PropertyCtx to the cache.
         // The factory function receives the key and the original expression as state.
-        PropertyCtx context = _membersCtxCache.GetOrAdd(
+        TargetCtx context = _membersCtxCache.GetOrAdd(
             propSelectorDefinition,
-            (key, expression) => ExpressionFactory.CreatePropertyCtx((Expression<Func<T, TProperty>>)expression, removeStartName, isForCollection),
+            (key, expression) => ExpressionFactory.CreateCtx(expression, removeStartName, isForCollection),
             memberSelector); // Pass the original memberSelector as state
 
         // Cast the non-generic PropertyCtx to its specific generic type.
         // This cast is safe because the factory method creates the correct generic type.
-        return (PropertyCtx<T, TProperty>)context;
+        return (TargetCtx<TSubject, TTarget>)context;
     }
+
+    //TODO: Implement TryGetCore(for validators constructor use) and TryAddCore(from all ready build core in validate methods)
 }
